@@ -2,3 +2,13 @@ S src
 S tests
 B _build
 B _build/src
+
+####{BSB GENERATED: NO EDIT
+FLG -ppx /Users/mhallin/Dropbox/Projects/lang_ocaml/graphql_ppx/./graphql_ppx.native
+FLG -ppx /Users/mhallin/Dropbox/Projects/lang_ocaml/graphql_ppx/node_modules/bs-platform/bin/bsppx.exe
+S /Users/mhallin/Dropbox/Projects/lang_ocaml/graphql_ppx/node_modules/bs-platform/lib/ocaml
+B /Users/mhallin/Dropbox/Projects/lang_ocaml/graphql_ppx/node_modules/bs-platform/lib/ocaml
+FLG -nostdlib -no-alias-deps -color always -w -40+6+7+27+32..39+44+45
+S tests
+B lib/bs/tests
+####BSB GENERATED: NO EDIT}

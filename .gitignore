@@ -1,2 +1,5 @@
 _build
 graphql_ppx.native
+node_modules
+tests/lib
+lib

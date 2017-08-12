@@ -4,9 +4,10 @@ build:
 	ocamlbuild -package ocaml-migrate-parsetree -package result -package yojson -I src graphql_ppx.native
 
 test: build
-	(cd tests && ocamlfind ppx_tools/rewriter ../graphql_ppx.native test.ml)
-#	ocamlbuild -package ounit -I tests test.native
-#	./test.native
+	(cd tests && \
+		ocamlfind ppx_tools/rewriter ../graphql_ppx.native test.ml && \
+		../node_modules/.bin/bsb && \
+		node lib/js/test.js)
 
 install: build
 	@opam-installer --prefix=$(PREFIX) graphql_ppx.install

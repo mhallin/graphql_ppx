@@ -1,5 +1,9 @@
-B ../_build
-B ../_build/src
-B ../_build/tests
-PKG ounit
-FLG -ppx ../graphql_ppx.native
+####{BSB GENERATED: NO EDIT
+FLG -ppx /Users/mhallin/Dropbox/Projects/lang_ocaml/graphql_ppx/tests/../graphql_ppx.native
+FLG -ppx /Users/mhallin/Dropbox/Projects/lang_ocaml/graphql_ppx/node_modules/bs-platform/bin/bsppx.exe
+S /Users/mhallin/Dropbox/Projects/lang_ocaml/graphql_ppx/node_modules/bs-platform/lib/ocaml
+B /Users/mhallin/Dropbox/Projects/lang_ocaml/graphql_ppx/node_modules/bs-platform/lib/ocaml
+FLG -nostdlib -no-alias-deps -color always -w -40+6+7+27+32..39+44+45
+S .
+B lib/bs
+####BSB GENERATED: NO EDIT}
