@@ -1,5 +1,5 @@
 open Result
-open SourcePos
+open Source_pos
 
 let map_ok f r = match r with
   | Ok x -> Ok (f x)

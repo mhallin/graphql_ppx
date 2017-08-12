@@ -1,6 +1,6 @@
 open Result
 
-open SourcePos
+open Source_pos
 
 let map_some f o = match o with
   | Some v -> Some (f v)
@@ -9,7 +9,7 @@ let map_some f o = match o with
 type lexer = {
   source: string;
   length: int;
-  mutable position: sourcePosition;
+  mutable position: source_position;
   mutable has_reached_eof: bool;
 }
 

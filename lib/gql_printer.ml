@@ -1,5 +1,5 @@
 open Ast
-open SourcePos
+open Source_pos
 
 let rec print_input_value iv = match iv with
   | Iv_null -> "null"

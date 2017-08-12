@@ -1,7 +1,7 @@
 open Result
 
 open Gql_parser
-open SourcePos
+open Source_pos
 
 open Ast
 

@@ -1,4 +1,4 @@
-type sourcePosition = {
+type source_position = {
   index: int;
   line: int;
   col: int;
@@ -6,7 +6,7 @@ type sourcePosition = {
 
 type 'a spanning = {
   item: 'a;
-  span: sourcePosition * sourcePosition;
+  span: source_position * source_position;
 }
 
 let origin = { index = 0; line = 0; col = 0 }

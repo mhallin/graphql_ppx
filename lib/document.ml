@@ -2,7 +2,7 @@ open Result
 open Ast
 
 open Gql_parser
-open SourcePos
+open Source_pos
 
 let last l = match List.length l with
   | 0 -> None
@@ -73,7 +73,7 @@ let rec parse_type parser = match skip parser Gql_lexer.Bracket_open with
       | { item = Gql_lexer.Exclamation_mark; span = _, end_pos } ->
         let _ = next parser in
         Ok (start_end (start_pos name_span) end_pos (Tr_non_null_named name_span))
-      | _ -> Ok (SourcePos.replace name_span (Tr_named name_span))
+      | _ -> Ok (replace name_span (Tr_named name_span))
 
 let parse_variable_definition parser = match expect parser Gql_lexer.Dollar with
   | Error e -> Error e
@@ -107,7 +107,7 @@ let parse_variable_definition parser = match expect parser Gql_lexer.Dollar with
 
 let parse_variable_definitions parser = match peek parser with
   | { item = Gql_lexer.Paren_open } ->
-    map_ok (fun span -> Some (SourcePos.map (fun items -> List.map (fun s -> s.item) items) span))
+    map_ok (fun span -> Some (map (fun items -> List.map (fun s -> s.item) items) span))
       (delimited_nonempty_list parser Gql_lexer.Paren_open parse_variable_definition Gql_lexer.Paren_close)
   | _ -> Ok None
 
@@ -211,24 +211,24 @@ and parse_fragment parser =
       end
     | _ -> match next parser with
       | Error e -> Error e
-      | Ok span -> Error (SourcePos.map (fun t -> Unexpected_token t) span)
+      | Ok span -> Error (map (fun t -> Unexpected_token t) span)
 
 and parse_selection parser =
   match peek parser with
   | { item = Gql_lexer.Ellipsis } -> parse_fragment parser
-  | _ -> map_ok (fun (span: Ast.field SourcePos.spanning) -> Ast.Field span) (parse_field parser)
+  | _ -> map_ok (fun (span: Ast.field spanning) -> Ast.Field span) (parse_field parser)
 
 let parse_operation_type parser = match next parser with
   | Error e -> Error e
-  | Ok ({ item = Gql_lexer.Name "query" } as span) -> Ok (SourcePos.replace span Ast.Query)
-  | Ok ({ item = Gql_lexer.Name "mutation"} as span) -> Ok (SourcePos.replace span Ast.Mutation)
-  | Ok span -> Error (SourcePos.map (fun t -> Unexpected_token t) span)
+  | Ok ({ item = Gql_lexer.Name "query" } as span) -> Ok (replace span Ast.Query)
+  | Ok ({ item = Gql_lexer.Name "mutation"} as span) -> Ok (replace span Ast.Mutation)
+  | Ok span -> Error (map (fun t -> Unexpected_token t) span)
 
 let parse_operation_definition parser =
   match peek parser with
   | { item = Gql_lexer.Curly_open } -> begin match parse_selection_set parser with
     | Error e -> Error e
-    | Ok span -> Ok (SourcePos.replace span {
+    | Ok span -> Ok (replace span {
         o_type = Query;
         o_name = None;
         o_variable_definitions = None;
@@ -269,7 +269,7 @@ let parse_fragment_definition parser = match expect parser (Gql_lexer.Name "frag
   | Error e -> Error e
   | Ok { span = start_pos, _ } -> match expect_name parser with
     | Error e -> Error e
-    | Ok ({ item = "on" } as span) -> Error (SourcePos.replace span (Unexpected_token (Gql_lexer.Name "on")))
+    | Ok ({ item = "on" } as span) -> Error (replace span (Unexpected_token (Gql_lexer.Name "on")))
     | Ok name_span -> match expect parser (Gql_lexer.Name "on") with
       | Error e -> Error e
       | Ok _ -> match expect_name parser with
@@ -294,7 +294,7 @@ let parse_definition parser =
     map_ok (fun def -> Ast.Operation def) (parse_operation_definition parser)
   | { item = Gql_lexer.Name "fragment" } ->
     map_ok (fun def -> Ast.Fragment def) (parse_fragment_definition parser)
-  | span -> Error (SourcePos.map (fun t -> Unexpected_token t) span)
+  | span -> Error (map (fun t -> Unexpected_token t) span)
 
 let parse_document parser =
   let rec scanner acc = match parse_definition parser with

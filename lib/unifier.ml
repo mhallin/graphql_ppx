@@ -1,5 +1,5 @@
 open Ast
-open SourcePos
+open Source_pos
 open Schema
 
 open Ast_404
@@ -79,7 +79,7 @@ let make_match_fun loc decoder none_arm some_arm =
 
 let mangle_enum_name = String.uncapitalize
 
-let rec unify_type map_loc span ty schema (selection_set: selection list SourcePos.spanning option) =
+let rec unify_type map_loc span ty schema (selection_set: selection list spanning option) =
   let loc = map_loc span in
   match ty with
   | Ntr_nullable t ->

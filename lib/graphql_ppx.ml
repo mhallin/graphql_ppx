@@ -4,11 +4,10 @@ module To_current = Convert(OCaml_404)(OCaml_current)
 
 open Ast_404
 
-open SourcePos
+open Source_pos
 
 let add_pos delimLength base pos =
   let open Lexing in
-  let open SourcePos in
   let (_, _, col) = Location.get_pos_info base in
   {
     pos_fname = base.pos_fname;
@@ -19,7 +18,6 @@ let add_pos delimLength base pos =
 
 let add_loc delimLength base span =
   let open Location in
-  let open SourcePos in
   {
     loc_start = add_pos delimLength base.loc_start (fst span);
     loc_end = add_pos delimLength base.loc_start (snd span);
@@ -78,13 +76,13 @@ let mapper () =
             let delimLength = match delim with | Some s -> 2 + String.length s | None -> 1 in
             match Gql_lexer.consume lexer with
             | Result.Error e -> raise (Location.Error (
-                Location.error ~loc:(add_loc delimLength loc e.span) (fmt_lex_err e.SourcePos.item)
+                Location.error ~loc:(add_loc delimLength loc e.span) (fmt_lex_err e.item)
               ))
             | Result.Ok tokens -> 
               let parser = Gql_parser.make tokens in
               match Document.parse_document parser with
               | Result.Error e -> raise (Location.Error (
-                  Location.error ~loc:(add_loc delimLength loc e.span) (fmt_parse_err e.SourcePos.item)
+                  Location.error ~loc:(add_loc delimLength loc e.span) (fmt_parse_err e.item)
                 ))
               | Result.Ok document ->
                 let reprinted_query = Gql_printer.print_document document in
