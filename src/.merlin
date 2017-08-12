@@ -1,5 +1,5 @@
 B ../_build
-B ../_build/lib
+B ../_build/src
 PKG ocaml-migrate-parsetree
 PKG result
 PKG yojson

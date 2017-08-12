@@ -1,5 +1,5 @@
 B ../_build
-B ../_build/lib
+B ../_build/src
 B ../_build/tests
 PKG ounit
 FLG -ppx ../graphql_ppx.native

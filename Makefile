@@ -1,7 +1,7 @@
 PREFIX?=$(shell opam config var prefix)
 
 build:
-	ocamlbuild -package ocaml-migrate-parsetree -package result -package yojson -I lib graphql_ppx.native
+	ocamlbuild -package ocaml-migrate-parsetree -package result -package yojson -I src graphql_ppx.native
 
 test: build
 	(cd tests && ocamlfind ppx_tools/rewriter ../graphql_ppx.native test.ml)
