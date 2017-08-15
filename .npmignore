@@ -1,0 +1,10 @@
+/_build
+/graphql_ppx.native
+/node_modules
+/tests/lib
+/lib
+/ppx
+/graphql_ppx.*
+/doc
+/lib
+/src
