@@ -121,7 +121,7 @@ let heroQuery = HeroQuery.make ();
 /* Send this query string to the server */
 let query = heroQuery##query;
 
-/* Let's assume that this was the result we got back from the server
+/* Let's assume that this was the result we got back from the server */
 let sampleResponse = "{ \"hero\": {\"name\": \"R2-D2\"} }";
 
 /* Convert the response to JSON and parse the result */
