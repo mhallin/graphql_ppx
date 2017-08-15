@@ -16,7 +16,7 @@ Bucklescript standard library.
 ## Installation
 
 Assuming that you've already got a Bucklescript project set up, installing this
-PPX consists of three steps:
+syntax extension consists of three steps:
 
 First, install the [OPAM](https://opam.ocaml.org) package to download and build
 the transform itself:
@@ -220,8 +220,7 @@ let x =
     switch (response##signUp) {
     | `User user => Js.log2 "Signed up a user with name " user##name
     | `Errors errors => Js.log2 "Errors when signing up: " errors
-    };
-    Promise.resolve ();
+    } |> Promise.resolve
   });
 ```
 
@@ -229,7 +228,7 @@ This helps with the fairly common pattern for mutations that can fail with
 user-readable errors.
 
 The `@bsVariant` directive is removed from the query at compile-time, so your
-server don't have to support it.
+server doesn't have to support it.
 
 ## Future work
 
@@ -240,7 +239,7 @@ Core GraphQL features that need to be implemented:
 - [ ] Selecting on interfaces
 - [ ] Selecting on unions
 - [ ] Input object arguments
-- [ ] The query validations
+- [ ] Query validations
 
 Nice-to-have features:
 
