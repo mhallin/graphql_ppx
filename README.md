@@ -37,7 +37,7 @@ Finally, add the PPX to your `bsconfig.json`:
 
 ```json
 {
-    "ppx_flags": [
+    "ppx-flags": [
         "graphql_ppx/ppx"
     ]
 }
