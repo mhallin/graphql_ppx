@@ -65,7 +65,7 @@ and print_inline_fragment f =
   (print_directives f.if_directives) ^
   (print_selection_set f.if_selection_set.item)
 
-let print_variable_definition (name, def) = Printf.sprintf "%s: %s%s"
+let print_variable_definition (name, def) = Printf.sprintf "$%s: %s%s"
     name.item
     (print_type def.vd_type.item)
     (match def.vd_default_value with | Some { item } -> " = " ^ (print_input_value item) | None -> "")
