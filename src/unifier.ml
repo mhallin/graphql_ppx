@@ -142,6 +142,9 @@ let rec unify_type map_loc span ty schema (selection_set: selection list spannin
     | Some Scalar { sm_name = "Float" } ->
       make_match_fun loc "Js.Json.decodeNumber" (make_error_raiser loc)
         (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
+    | Some Scalar { sm_name = "Boolean" } ->
+      make_match_fun loc "Js.Json.decodeBoolean" (make_error_raiser loc)
+        (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
     | Some Scalar _ -> 
         (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
     | Some ((Object o) as ty) ->
@@ -501,6 +504,17 @@ let rec convert_arg_to_json map_loc name var_type =
               );
             pexp_loc = name_loc; pexp_attributes = [];
           })
+      ]
+    )
+  | Ntr_named "Boolean" ->
+    Pexp_apply (
+      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.boolean"; loc = name_loc};
+       pexp_loc = name_loc; pexp_attributes = []},
+      [
+        (Nolabel, {
+            pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
+            pexp_loc = name_loc; pexp_attributes = [];
+          });
       ]
     )
   | Ntr_named _ -> Pexp_ident { txt = Longident.Lident name.item; loc = name_loc}
