@@ -187,8 +187,9 @@ This implementation is very incomplete. It does *not* support:
 * Objects are converted into `Js.t` objects
 * Enums are converted into [polymorphic
   variants](https://realworldocaml.org/v1/en/html/variants.html)
-* Floats, ints, strings, booleans are converted into their corresponding native
+* Floats, ints, strings, booleans, id are converted into their corresponding native
   OCaml types.
+* Custom scalars are parsed as `Js.Json.t`
 
 ## Extra features
 
@@ -240,6 +241,7 @@ Core GraphQL features that need to be implemented:
 - [ ] Selecting on unions
 - [ ] Input object arguments
 - [ ] Query validations
+- [ ] Explicit resolvers for custom scalars
 
 Nice-to-have features:
 
