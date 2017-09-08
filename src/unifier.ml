@@ -122,6 +122,17 @@ let rec unify_type map_loc span ty schema (selection_set: selection list spannin
                ptyp_loc = loc;
                ptyp_attributes = [];
              }))
+    | Some Scalar { sm_name = "ID" } ->
+    make_match_fun loc "Js.Json.decodeString" (make_error_raiser loc)
+      (Pexp_constraint ({
+          pexp_desc = Pexp_ident { txt = Longident.Lident "value"; loc = loc};
+          pexp_loc = loc;
+          pexp_attributes = []
+        }, {
+            ptyp_desc = Ptyp_constr ({ txt = Longident.Lident "string"; loc = loc }, []);
+            ptyp_loc = loc;
+            ptyp_attributes = [];
+          }))
     | Some Scalar { sm_name = "Int" } ->
       make_match_fun loc "Js.Json.decodeNumber" (make_error_raiser loc)
         (Pexp_apply ({pexp_desc = Pexp_ident{txt = Longident.Lident "int_of_float"; loc = loc};
@@ -439,6 +450,17 @@ let rec convert_arg_to_json map_loc name var_type =
       ]
     )
   | Ntr_named "String" ->
+    Pexp_apply (
+      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.string"; loc = name_loc};
+       pexp_loc = name_loc; pexp_attributes = []},
+      [
+        (Nolabel, {
+            pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
+            pexp_loc = name_loc; pexp_attributes = [];
+          });
+      ]
+    )
+  | Ntr_named "ID" ->
     Pexp_apply (
       {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.string"; loc = name_loc};
        pexp_loc = name_loc; pexp_attributes = []},
