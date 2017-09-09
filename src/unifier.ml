@@ -110,13 +110,13 @@ let rec unify_type map_loc span ty schema (selection_set: selection list spannin
       (Pexp_apply (
           make_expression (Pexp_ident { txt = Longident.parse "Array.map"; loc = loc }),
           [(Nolabel, make_expression (
-                Pexp_fun (
-                   Nolabel,
-                   None,
-                   make_pattern (Ppat_var { txt = "value"; loc = loc }),
-                   make_expression (unify_type map_loc span t schema selection_set)
-                 );
-               ));
+               Pexp_fun (
+                 Nolabel,
+                 None,
+                 make_pattern (Ppat_var { txt = "value"; loc = loc }),
+                 make_expression (unify_type map_loc span t schema selection_set)
+               );
+             ));
            (Nolabel, make_identifier "value")]
         ))
   | Ntr_named n -> match lookup_type schema n with
@@ -128,8 +128,8 @@ let rec unify_type map_loc span ty schema (selection_set: selection list spannin
     | Some Scalar { sm_name = "Int" } ->
       make_match_fun "Js.Json.decodeNumber" (make_error_raiser loc)
         (Pexp_apply (
-          make_identifier "int_of_float",
-          [(Nolabel, make_identifier "value")]))
+            make_identifier "int_of_float",
+            [(Nolabel, make_identifier "value")]))
     | Some Scalar { sm_name = "Float" } ->
       make_match_fun "Js.Json.decodeNumber" (make_error_raiser loc)
         (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
@@ -137,7 +137,7 @@ let rec unify_type map_loc span ty schema (selection_set: selection list spannin
       make_match_fun "Js.Json.decodeBoolean" (make_error_raiser loc)
         (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
     | Some Scalar _ -> 
-        (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
+      (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
     | Some ((Object o) as ty) ->
       unify_selection_set map_loc span schema ty selection_set
     | Some Enum { em_name; em_values } ->
