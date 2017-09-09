@@ -122,6 +122,17 @@ let rec unify_type map_loc span ty schema (selection_set: selection list spannin
                ptyp_loc = loc;
                ptyp_attributes = [];
              }))
+    | Some Scalar { sm_name = "ID" } ->
+    make_match_fun loc "Js.Json.decodeString" (make_error_raiser loc)
+      (Pexp_constraint ({
+          pexp_desc = Pexp_ident { txt = Longident.Lident "value"; loc = loc};
+          pexp_loc = loc;
+          pexp_attributes = []
+        }, {
+            ptyp_desc = Ptyp_constr ({ txt = Longident.Lident "string"; loc = loc }, []);
+            ptyp_loc = loc;
+            ptyp_attributes = [];
+          }))
     | Some Scalar { sm_name = "Int" } ->
       make_match_fun loc "Js.Json.decodeNumber" (make_error_raiser loc)
         (Pexp_apply ({pexp_desc = Pexp_ident{txt = Longident.Lident "int_of_float"; loc = loc};
@@ -131,7 +142,11 @@ let rec unify_type map_loc span ty schema (selection_set: selection list spannin
     | Some Scalar { sm_name = "Float" } ->
       make_match_fun loc "Js.Json.decodeNumber" (make_error_raiser loc)
         (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
-    | Some Scalar _ -> raise_error map_loc span ("Unknown scalar type " ^ n)
+    | Some Scalar { sm_name = "Boolean" } ->
+      make_match_fun loc "Js.Json.decodeBoolean" (make_error_raiser loc)
+        (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
+    | Some Scalar _ -> 
+        (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
     | Some ((Object o) as ty) ->
       unify_selection_set map_loc span schema ty selection_set
     | Some Enum { em_name; em_values } ->
@@ -449,6 +464,17 @@ let rec convert_arg_to_json map_loc name var_type =
           });
       ]
     )
+  | Ntr_named "ID" ->
+    Pexp_apply (
+      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.string"; loc = name_loc};
+       pexp_loc = name_loc; pexp_attributes = []},
+      [
+        (Nolabel, {
+            pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
+            pexp_loc = name_loc; pexp_attributes = [];
+          });
+      ]
+    )
   | Ntr_named "Float" ->
     Pexp_apply (
       {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.float"; loc = name_loc};
@@ -480,7 +506,18 @@ let rec convert_arg_to_json map_loc name var_type =
           })
       ]
     )
-  | Ntr_named n -> raise_error map_loc name.span "Unsupported input type"
+  | Ntr_named "Boolean" ->
+    Pexp_apply (
+      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.boolean"; loc = name_loc};
+       pexp_loc = name_loc; pexp_attributes = []},
+      [
+        (Nolabel, {
+            pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
+            pexp_loc = name_loc; pexp_attributes = [];
+          });
+      ]
+    )
+  | Ntr_named _ -> Pexp_ident { txt = Longident.Lident name.item; loc = name_loc}
   | Ntr_list l -> raise_error map_loc name.span "Unsupported input type"
 
 let rec make_make_fun map_loc schema document =

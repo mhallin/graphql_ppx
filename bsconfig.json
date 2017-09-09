@@ -1,3 +1,4 @@
 {
-    "name": "graphql_ppx"
+    "name": "graphql_ppx",
+    "bsc-flags": [ "-bs-super-errors" ]
 }

@@ -5,5 +5,6 @@
     ],
     "ppx-flags": [
         "../graphql_ppx.native"
-    ]
+    ],
+    "bsc-flags": [ "-bs-super-errors" ]
 }
