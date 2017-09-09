@@ -477,7 +477,7 @@ let rec convert_arg_to_json map_loc name var_type =
     )
   | Ntr_named "Float" ->
     Pexp_apply (
-      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.float"; loc = name_loc};
+      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.number"; loc = name_loc};
        pexp_loc = name_loc; pexp_attributes = []},
       [
         (Nolabel, {
@@ -488,7 +488,7 @@ let rec convert_arg_to_json map_loc name var_type =
     )
   | Ntr_named "Int" ->
     Pexp_apply (
-      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.float"; loc = name_loc};
+      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.number"; loc = name_loc};
        pexp_loc = name_loc; pexp_attributes = []},
       [
         (Nolabel, {
