@@ -81,69 +81,60 @@ let mangle_enum_name = String.uncapitalize
 
 let rec unify_type map_loc span ty schema (selection_set: selection list spanning option) =
   let loc = map_loc span in
+  let make_match_fun = make_match_fun loc in
+  let make_expression pexp_desc = {
+    pexp_desc; 
+    pexp_loc = loc;
+    pexp_attributes = [];
+  } in
+  let make_pattern ppat_desc = {
+    ppat_desc;
+    ppat_loc = loc;
+    ppat_attributes = [];
+  } in
+  let make_type t = {
+    ptyp_desc = Ptyp_constr ({ txt = Longident.Lident t; loc = loc }, []);
+    ptyp_loc = loc;
+    ptyp_attributes = [];
+  } in
+  let make_identifier identifier = 
+    make_expression (Pexp_ident {txt=Longident.Lident identifier; loc = loc}) in 
   match ty with
   | Ntr_nullable t ->
-    make_match_fun loc "Js.Json.decodeNull" 
-      (Pexp_construct ({ txt = Longident.Lident "Some"; loc = loc }, Some {
-           pexp_desc = (unify_type map_loc span t schema selection_set);
-           pexp_loc = loc;
-           pexp_attributes = [];
-         }))
+    make_match_fun "Js.Json.decodeNull" 
+      (Pexp_construct ({ txt = Longident.Lident "Some"; loc = loc }, 
+      Some (make_expression (unify_type map_loc span t schema selection_set))))
       (Pexp_construct ({ txt = Longident.Lident "None"; loc = loc }, None))
   | Ntr_list t ->
-    make_match_fun loc "Js.Json.decodeArray" (make_error_raiser loc)
+    make_match_fun "Js.Json.decodeArray" (make_error_raiser loc)
       (Pexp_apply (
-          {pexp_desc = Pexp_ident { txt = Longident.parse "Array.map"; loc = loc };
-           pexp_loc = loc; pexp_attributes = []},
-          [(Nolabel, {
-               pexp_desc = Pexp_fun (
+          make_expression (Pexp_ident { txt = Longident.parse "Array.map"; loc = loc }),
+          [(Nolabel, make_expression (
+                Pexp_fun (
                    Nolabel,
                    None,
-                   {ppat_desc = Ppat_var { txt = "value"; loc = loc }; ppat_loc = loc; ppat_attributes = []},
-                   {pexp_desc = (unify_type map_loc span t schema selection_set);
-                    pexp_loc = loc; pexp_attributes = []}
+                   make_pattern (Ppat_var { txt = "value"; loc = loc }),
+                   make_expression (unify_type map_loc span t schema selection_set)
                  );
-               pexp_loc = loc; pexp_attributes = []});
-           (Nolabel, {
-               pexp_desc = Pexp_ident { txt = Longident.Lident "value"; loc = loc };
-               pexp_loc = loc; pexp_attributes = [];
-             })]
+               ));
+           (Nolabel, make_identifier "value")]
         ))
   | Ntr_named n -> match lookup_type schema n with
     | None -> raise_error map_loc span ("Could not find type " ^ n)
+    | Some Scalar { sm_name = "ID" } 
     | Some Scalar { sm_name = "String" } ->
-      make_match_fun loc "Js.Json.decodeString" (make_error_raiser loc)
-        (Pexp_constraint ({
-             pexp_desc = Pexp_ident { txt = Longident.Lident "value"; loc = loc};
-             pexp_loc = loc;
-             pexp_attributes = []
-           }, {
-               ptyp_desc = Ptyp_constr ({ txt = Longident.Lident "string"; loc = loc }, []);
-               ptyp_loc = loc;
-               ptyp_attributes = [];
-             }))
-    | Some Scalar { sm_name = "ID" } ->
-    make_match_fun loc "Js.Json.decodeString" (make_error_raiser loc)
-      (Pexp_constraint ({
-          pexp_desc = Pexp_ident { txt = Longident.Lident "value"; loc = loc};
-          pexp_loc = loc;
-          pexp_attributes = []
-        }, {
-            ptyp_desc = Ptyp_constr ({ txt = Longident.Lident "string"; loc = loc }, []);
-            ptyp_loc = loc;
-            ptyp_attributes = [];
-          }))
+      make_match_fun "Js.Json.decodeString" (make_error_raiser loc)
+        (Pexp_constraint (make_identifier "value", make_type "string"))
     | Some Scalar { sm_name = "Int" } ->
-      make_match_fun loc "Js.Json.decodeNumber" (make_error_raiser loc)
-        (Pexp_apply ({pexp_desc = Pexp_ident{txt = Longident.Lident "int_of_float"; loc = loc};
-                      pexp_loc = loc; pexp_attributes = []},
-                     [(Nolabel, {pexp_desc = Pexp_ident {txt=Longident.Lident "value"; loc = loc};
-                                 pexp_loc = loc; pexp_attributes = []})]))
+      make_match_fun "Js.Json.decodeNumber" (make_error_raiser loc)
+        (Pexp_apply (
+          make_identifier "int_of_float",
+          [(Nolabel, make_identifier "value")]))
     | Some Scalar { sm_name = "Float" } ->
-      make_match_fun loc "Js.Json.decodeNumber" (make_error_raiser loc)
+      make_match_fun "Js.Json.decodeNumber" (make_error_raiser loc)
         (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
     | Some Scalar { sm_name = "Boolean" } ->
-      make_match_fun loc "Js.Json.decodeBoolean" (make_error_raiser loc)
+      make_match_fun "Js.Json.decodeBoolean" (make_error_raiser loc)
         (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
     | Some Scalar _ -> 
         (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
@@ -161,33 +152,23 @@ let rec unify_type map_loc span ty schema (selection_set: selection list spannin
       in
       let enum_vals =
         Pexp_match (
-          {pexp_desc = Pexp_ident { txt = Longident.Lident "value"; loc = loc};
-           pexp_loc = loc; pexp_attributes = []},
+          make_identifier "value",
           List.concat [
             List.map (fun { evm_name } -> {
                   pc_lhs = {ppat_desc = Ppat_constant (Pconst_string (evm_name, None)); ppat_loc = loc; ppat_attributes = []};
                   pc_guard = None;
-                  pc_rhs = {
-                    pexp_desc = Pexp_variant (evm_name, None);
-                    pexp_loc = loc;
-                    pexp_attributes = [];
-                  }
+                  pc_rhs = make_expression (Pexp_variant (evm_name, None)) 
                 }) em_values;
             [{
               pc_lhs = {ppat_desc = Ppat_any; ppat_loc = loc; ppat_attributes = []};
               pc_guard = None;
-              pc_rhs = {
-                pexp_desc = make_error_raiser loc;
-                pexp_loc = loc;
-                pexp_attributes = [];
-              }
+              pc_rhs = make_expression (make_error_raiser loc)
             }]
           ]
         )
       in
-      make_match_fun loc "Js.Json.decodeString" (make_error_raiser loc)
-        (Pexp_constraint ({pexp_desc = enum_vals; pexp_loc = loc; pexp_attributes = []},
-                          enum_ty))
+      make_match_fun "Js.Json.decodeString" (make_error_raiser loc)
+        (Pexp_constraint (make_expression enum_vals, enum_ty))
     | Some ((Interface o) as ty) ->
       unify_selection_set map_loc span schema ty selection_set
     | Some InputObject _ -> raise_error map_loc span "Can't have fields on input objects"
