@@ -6,15 +6,13 @@ authors: "Magnus Hallin <mhallin@fastmail.com>"
 homepage: "https://github.com/mhallin/graphql_ppx"
 bug-reports: "https://github.com/mhallin/graphql_ppx/issues"
 license: "BSD 3-clause"
-dev-repo: "https://github.com/mhallin/graphql_ppx"
+dev-repo: "git@github.com:mhallin/graphql_ppx.git"
 tags: ["bucklescript" "reasonml" "ppx" "graphql"]
 build: [
   [make "build"]
-  [make "install"]
 ]
-remove: [
-  [make "uninstall"]
-]
+install: [make "install"]
+remove: [make "uninstall"]
 available: [ocaml-version = "4.02.3"]
 depends: [
   "ocamlfind" {build}
