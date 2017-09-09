@@ -474,7 +474,7 @@ let rec convert_arg_to_json map_loc name var_type =
       [
         (Nolabel, {
             pexp_desc = Pexp_apply (
-                {pexp_desc = Pexp_ident { txt = Longident.Lident "int_of_float"; loc = name_loc};
+                {pexp_desc = Pexp_ident { txt = Longident.Lident "float"; loc = name_loc};
                  pexp_loc = name_loc; pexp_attributes = []},
                 [
                   (Nolabel, {
