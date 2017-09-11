@@ -45,9 +45,9 @@ boom@2.x.x:
   dependencies:
     hoek "2.x.x"
 
-bs-platform@^1.8.2:
-  version "1.8.2"
-  resolved "https://registry.yarnpkg.com/bs-platform/-/bs-platform-1.8.2.tgz#2aba1cfc73e21feaa8902d67b5ddbec975938554"
+bs-platform@^1.9.1:
+  version "1.9.1"
+  resolved "https://registry.yarnpkg.com/bs-platform/-/bs-platform-1.9.1.tgz#1195562f0f8b131cc758693e7c9b31d7e0022001"
 
 caseless@~0.12.0:
   version "0.12.0"

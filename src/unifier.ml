@@ -79,31 +79,38 @@ let make_match_fun loc decoder none_arm some_arm =
 
 let mangle_enum_name = String.uncapitalize
 
+let make_expression loc pexp_desc  = {
+  pexp_desc; 
+  pexp_loc = loc;
+  pexp_attributes = [];
+} 
+let make_pattern loc ppat_desc = {
+  ppat_desc;
+  ppat_loc = loc;
+  ppat_attributes = [];
+} 
+let make_type loc t = {
+  ptyp_desc = Ptyp_constr ({ txt = Longident.Lident t; loc = loc }, []);
+  ptyp_loc = loc;
+  ptyp_attributes = [];
+} 
+let make_identifier loc identifier = 
+  make_expression loc (Pexp_ident {txt=Longident.Lident identifier; loc = loc})
+
+
 let rec unify_type map_loc span ty schema (selection_set: selection list spanning option) =
+
   let loc = map_loc span in
   let make_match_fun = make_match_fun loc in
-  let make_expression pexp_desc = {
-    pexp_desc; 
-    pexp_loc = loc;
-    pexp_attributes = [];
-  } in
-  let make_pattern ppat_desc = {
-    ppat_desc;
-    ppat_loc = loc;
-    ppat_attributes = [];
-  } in
-  let make_type t = {
-    ptyp_desc = Ptyp_constr ({ txt = Longident.Lident t; loc = loc }, []);
-    ptyp_loc = loc;
-    ptyp_attributes = [];
-  } in
-  let make_identifier identifier = 
-    make_expression (Pexp_ident {txt=Longident.Lident identifier; loc = loc}) in 
+  let make_expression = make_expression loc in
+  let make_pattern = make_pattern loc in
+  let make_type = make_type loc in
+  let make_identifier = make_identifier loc in
   match ty with
   | Ntr_nullable t ->
     make_match_fun "Js.Json.decodeNull" 
       (Pexp_construct ({ txt = Longident.Lident "Some"; loc = loc }, 
-      Some (make_expression (unify_type map_loc span t schema selection_set))))
+                       Some (make_expression (unify_type map_loc span t schema selection_set))))
       (Pexp_construct ({ txt = Longident.Lident "None"; loc = loc }, None))
   | Ntr_list t ->
     make_match_fun "Js.Json.decodeArray" (make_error_raiser loc)
@@ -406,7 +413,7 @@ let unify_document_schema map_loc schema document =
     end
   | _ -> raise @@ Unimplemented "unification with other than singular queries"
 
-let rec convert_arg_to_json map_loc name var_type =
+let rec convert_arg_to_json map_loc name schema var_type =
   let name_loc = map_loc name.span in
   match var_type with
   | Ntr_nullable inner ->
@@ -427,79 +434,93 @@ let rec convert_arg_to_json map_loc name var_type =
                     ppat_loc = name_loc; ppat_attributes = [];};
           pc_guard = None;
           pc_rhs = {
-            pexp_desc = convert_arg_to_json map_loc name inner;
+            pexp_desc = convert_arg_to_json map_loc name schema inner;
             pexp_loc = name_loc;
             pexp_attributes = [];
           };
         };
       ]
     )
-  | Ntr_named "String" ->
-    Pexp_apply (
-      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.string"; loc = name_loc};
-       pexp_loc = name_loc; pexp_attributes = []},
-      [
-        (Nolabel, {
-            pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
-            pexp_loc = name_loc; pexp_attributes = [];
-          });
-      ]
-    )
-  | Ntr_named "ID" ->
-    Pexp_apply (
-      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.string"; loc = name_loc};
-       pexp_loc = name_loc; pexp_attributes = []},
-      [
-        (Nolabel, {
-            pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
-            pexp_loc = name_loc; pexp_attributes = [];
-          });
-      ]
-    )
-  | Ntr_named "Float" ->
-    Pexp_apply (
-      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.number"; loc = name_loc};
-       pexp_loc = name_loc; pexp_attributes = []},
-      [
-        (Nolabel, {
-            pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
-            pexp_loc = name_loc; pexp_attributes = [];
-          });
-      ]
-    )
-  | Ntr_named "Int" ->
-    Pexp_apply (
-      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.number"; loc = name_loc};
-       pexp_loc = name_loc; pexp_attributes = []},
-      [
-        (Nolabel, {
-            pexp_desc = Pexp_apply (
-                {pexp_desc = Pexp_ident { txt = Longident.Lident "float"; loc = name_loc};
-                 pexp_loc = name_loc; pexp_attributes = []},
-                [
-                  (Nolabel, {
-                      pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
-                      pexp_loc = name_loc; pexp_attributes = [];
-                    });
-                ]
-              );
-            pexp_loc = name_loc; pexp_attributes = [];
-          })
-      ]
-    )
-  | Ntr_named "Boolean" ->
-    Pexp_apply (
-      {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.boolean"; loc = name_loc};
-       pexp_loc = name_loc; pexp_attributes = []},
-      [
-        (Nolabel, {
-            pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
-            pexp_loc = name_loc; pexp_attributes = [];
-          });
-      ]
-    )
-  | Ntr_named _ -> Pexp_ident { txt = Longident.Lident name.item; loc = name_loc}
   | Ntr_list l -> raise_error map_loc name.span "Unsupported input type"
+  | Ntr_named n ->  match lookup_type schema n with
+    | None -> raise_error map_loc name.span ("Could not find type " ^ n)
+    | Some Scalar  { sm_name = "String" } 
+    | Some Scalar  { sm_name = "ID" }  ->
+      Pexp_apply (
+        {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.string"; loc = name_loc};
+         pexp_loc = name_loc; pexp_attributes = []},
+        [
+          (Nolabel, {
+              pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
+              pexp_loc = name_loc; pexp_attributes = [];
+            });
+        ]
+      )
+    | Some Scalar { sm_name = "Float" }  ->
+      Pexp_apply (
+        {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.number"; loc = name_loc};
+         pexp_loc = name_loc; pexp_attributes = []},
+        [
+          (Nolabel, {
+              pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
+              pexp_loc = name_loc; pexp_attributes = [];
+            });
+        ]
+      )
+    | Some Scalar { sm_name = "Int" }  ->
+      Pexp_apply (
+        {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.number"; loc = name_loc};
+         pexp_loc = name_loc; pexp_attributes = []},
+        [
+          (Nolabel, {
+              pexp_desc = Pexp_apply (
+                  {pexp_desc = Pexp_ident { txt = Longident.Lident "float"; loc = name_loc};
+                   pexp_loc = name_loc; pexp_attributes = []},
+                  [
+                    (Nolabel, {
+                        pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
+                        pexp_loc = name_loc; pexp_attributes = [];
+                      });
+                  ]
+                );
+              pexp_loc = name_loc; pexp_attributes = [];
+            })
+        ]
+      )
+    | Some Scalar { sm_name = "Boolean" }->
+      Pexp_apply (
+        {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.boolean"; loc = name_loc};
+         pexp_loc = name_loc; pexp_attributes = []},
+        [
+          (Nolabel, {
+              pexp_desc = Pexp_ident { txt = Longident.Lident name.item; loc = name_loc};
+              pexp_loc = name_loc; pexp_attributes = [];
+            });
+        ]
+      )
+    | Some Scalar _  -> Pexp_ident { txt = Longident.Lident name.item; loc = name_loc}
+    | Some Enum { em_values }  -> 
+      Pexp_match (
+        make_identifier name_loc name.item,
+        List.concat [
+          List.map (fun { evm_name } -> {
+                pc_rhs =  make_expression name_loc (Pexp_apply (
+                    {pexp_desc = Pexp_ident { txt = Longident.parse "Js.Json.string"; loc = name_loc};
+                     pexp_loc = name_loc; pexp_attributes = []},
+                    [
+                      (Nolabel, {
+                          pexp_desc = Pexp_constant (Pconst_string(evm_name, None));
+                          pexp_loc = name_loc; pexp_attributes = [];
+                        });
+                    ]
+                  ));
+                pc_guard = None;
+                pc_lhs = {ppat_desc =  ( (Ppat_variant (evm_name, None)) );  ppat_loc = name_loc; ppat_attributes = [] }
+              }) em_values;
+        ]
+      )
+    | _ -> raise_error map_loc name.span "Unsupported input type"
+
 
 let rec make_make_fun map_loc schema document =
   let make_make_triple loc variables =
@@ -574,7 +595,7 @@ let rec make_make_fun map_loc schema document =
                           pexp_attributes = [];
                         };
                         {
-                          pexp_desc = convert_arg_to_json map_loc name (to_native_type_ref (to_schema_type_ref def.vd_type.item));
+                          pexp_desc = convert_arg_to_json map_loc name schema (to_native_type_ref (to_schema_type_ref def.vd_type.item));
                           pexp_loc = map_loc name.span;
                           pexp_attributes = [];
                         };
