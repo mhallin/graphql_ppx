@@ -1,7 +1,7 @@
 {
     "name": "graphql_ppx_test",
     "sources": [
-        "."
+        "types"
     ],
     "ppx-flags": [
         "../graphql_ppx.native"

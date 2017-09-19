@@ -4,6 +4,6 @@ FLG -ppx /Users/mhallin/Dropbox/Projects/lang_ocaml/graphql_ppx/node_modules/bs-
 S /Users/mhallin/Dropbox/Projects/lang_ocaml/graphql_ppx/node_modules/bs-platform/lib/ocaml
 B /Users/mhallin/Dropbox/Projects/lang_ocaml/graphql_ppx/node_modules/bs-platform/lib/ocaml
 FLG -nostdlib -no-alias-deps -color always -w -40+6+7+27+32..39+44+45
-S .
-B lib/bs
+S types
+B lib/bs/types
 ####BSB GENERATED: NO EDIT}
