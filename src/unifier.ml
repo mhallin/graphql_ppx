@@ -13,11 +13,11 @@ type native_type_ref =
   | Ntr_nullable of native_type_ref
   | Ntr_list of native_type_ref
 
-let rec type_name_of_native_type_ref = 
+let rec unwrapped_type_name_of_native_type_ref = 
   function
   | Ntr_named s -> s
-  | Ntr_nullable x -> type_name_of_native_type_ref x
-  | Ntr_list x -> type_name_of_native_type_ref x
+  | Ntr_nullable x -> unwrapped_type_name_of_native_type_ref x
+  | Ntr_list x -> unwrapped_type_name_of_native_type_ref x
 
 let rec to_native_type_ref tr = match tr with
   | NonNull (Named n) -> Ntr_named n
@@ -32,10 +32,13 @@ let rec to_schema_type_ref tr = match tr with
   | Tr_non_null_list l -> NonNull (List (to_schema_type_ref l.item))
   | Tr_non_null_named n -> NonNull (Named n.item)
 
-let raise_error map_loc span message =
+let raise_error_with_loc loc message =
   raise (Location.Error (
-      Location.error ~loc:(map_loc span) message
+      Location.error ~loc message
     ))
+
+let raise_error map_loc span message =
+  raise_error_with_loc (map_loc span) message
 
 let some_or o d = match o with
   | Some v -> v
@@ -462,43 +465,37 @@ let to_argument_meta { fm_name; fm_description; fm_field_type } =
 
 module TypeSet = Set.Make (
   struct
-    type t = Schema.type_meta
-    let compare = Schema.compare_type_meta
+    type t = string spanning * Schema.type_meta
+    let compare (_, x) (_, y) = Schema.compare_type_meta x y
   end
   )
 
 let rec extract_variable_types schema acc =
   function
   | [] -> acc
-  | h::t -> 
+  | (spanning, type_meta)::t -> 
     let ty = lookup_type schema (
-        type_name_of_native_type_ref (to_native_type_ref h)
+        unwrapped_type_name_of_native_type_ref (to_native_type_ref type_meta)
       ) in
     match ty with
     | None ->
       extract_variable_types schema acc t
-    | Some x when (TypeSet.exists (fun y -> Schema.compare_type_meta x y == 0) acc) ->
+    | Some x when (TypeSet.exists (fun (_, y) -> Schema.compare_type_meta x y == 0) acc) ->
       extract_variable_types schema acc t
     | Some InputObject { iom_name } when String.compare iom_name "_QueryMeta" == 0 -> 
       extract_variable_types schema acc t
     | Some Object { om_name } when String.compare om_name "_QueryMeta" == 0 -> 
       extract_variable_types schema acc t
     | Some Object x ->
-      let acc = TypeSet.add (Object x) acc in
-      let child_types = List.map (fun x -> x.fm_field_type) x.om_fields in
+      let acc = TypeSet.add (spanning, (Object x)) acc in
+      let child_types = List.map (fun x -> (spanning, x.fm_field_type)) x.om_fields in
       extract_variable_types schema (extract_variable_types schema acc child_types) t
     | Some InputObject x ->
-      let acc = TypeSet.add (InputObject x) acc in
-      let child_types = List.map (fun x -> x.am_arg_type) x.iom_input_fields in
+      let acc = TypeSet.add (spanning, (InputObject x)) acc in
+      let child_types = List.map (fun x -> (spanning, x.am_arg_type)) x.iom_input_fields in
       extract_variable_types schema (extract_variable_types schema acc child_types) t
-    | Some Interface x -> 
-      let acc = TypeSet.add (Interface x) acc in
-      extract_variable_types schema acc t
-    | Some Union x -> 
-      let acc = TypeSet.add (Union x) acc in
-      extract_variable_types schema acc t
     | Some x ->
-      let acc = TypeSet.add x acc in
+      let acc = TypeSet.add (spanning, x) acc in
       extract_variable_types schema acc t
 
 let make_value_binding loc pattern expression = {
@@ -516,6 +513,7 @@ let function_name_string x = "json_of_" ^ Schema.extract_name_from_type_meta x
 
 let rec parser_for_type schema loc type_ref = 
   let make_expression = make_expression loc in
+  let raise_inconsistent_schema type_name = raise_error_with_loc loc ("Inconsistent schema, type named " ^ type_name ^ " cannot be found") in
   let apply = apply loc in
   match type_ref with
   | Ntr_list x ->
@@ -527,7 +525,7 @@ let rec parser_for_type schema loc type_ref =
           apply "json_of_array" (
             child_parser
           ))
-      | None -> raise @@ Invalid_argument "ABC"
+      | None -> raise_inconsistent_schema (unwrapped_type_name_of_native_type_ref x)
     end
   | Ntr_nullable x ->
     let child_parser = (parser_for_type schema loc x) in
@@ -542,7 +540,7 @@ let rec parser_for_type schema loc type_ref =
   | Ntr_named type_name ->
     let type_ = lookup_type schema type_name in
     match type_ with
-    | None -> raise @@ Invalid_argument ("Inconsistent schema, type named " ^ type_name ^ " cannot be found")
+    | None -> raise_inconsistent_schema type_name 
     | Some InputObject { iom_name } when String.compare iom_name "_QueryMeta" == 0 -> 
       None
     | Some Object { om_name } when String.compare om_name "_QueryMeta" == 0 -> 
@@ -581,7 +579,8 @@ let rec list_of_fields schema loc expr fields =
               ]
             ))))
 
-let generate_encoder schema loc x =
+let generate_encoder schema map_loc (spanning, x) =
+  let loc = map_loc spanning.span in
   let make_value_binding = make_value_binding loc in
   let make_pattern = make_pattern loc in
   let make_value_expression = make_value_expression loc in
@@ -738,15 +737,15 @@ let array_encoder loc =
                 ]
             ))))))
 
-let generate_encoders schema loc = 
+let generate_encoders schema loc map_loc = 
   function
   | [Operation { 
       item = { o_variable_definitions = Some { item } }
-    }] -> List.map (fun (_, {vd_type = variable_type}) -> 
-      to_schema_type_ref variable_type.item
+    }] -> List.map (fun (spanning, {vd_type = variable_type}) -> 
+      (spanning, to_schema_type_ref variable_type.item)
     ) item 
           |> extract_variable_types schema TypeSet.empty
-          |> (fun types -> TypeSet.fold (fun element t -> (generate_encoder schema loc element)::t) types [])
+          |> (fun types -> TypeSet.fold (fun element t -> (generate_encoder schema map_loc element)::t) types [])
           |> (fun encoders -> (optional_encoder loc)::(array_encoder loc)::encoders)
   | [Operation { item = { o_variable_definitions = None }}] -> []
   | _ -> raise @@ Unimplemented "variables on other than singular queries/mutations" 
