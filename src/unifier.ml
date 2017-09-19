@@ -655,25 +655,25 @@ let make_encoder_function_type loc input_type =
         ({ txt = Longident.parse "Js.Json.t"; loc },
          [])) in
   make_type (
-      Ptyp_poly (
-        ["a"], 
-        make_type (
-          Ptyp_arrow (
-            Nolabel,
-            make_type (
-              Ptyp_arrow (
-                Nolabel, make_type (Ptyp_var "a"), json_t)
-            ),
-            make_type (
-              Ptyp_arrow (
-                Nolabel,
-                make_type (
-                  Ptyp_constr (
-                    {loc; txt = Longident.Lident input_type},
-                    [make_type (Ptyp_var "a")]
-                  )
-                ),
-                json_t))))))
+    Ptyp_poly (
+      ["a"], 
+      make_type (
+        Ptyp_arrow (
+          Nolabel,
+          make_type (
+            Ptyp_arrow (
+              Nolabel, make_type (Ptyp_var "a"), json_t)
+          ),
+          make_type (
+            Ptyp_arrow (
+              Nolabel,
+              make_type (
+                Ptyp_constr (
+                  {loc; txt = Longident.Lident input_type},
+                  [make_type (Ptyp_var "a")]
+                )
+              ),
+              json_t))))))
 
 let optional_encoder loc =
   let make_pattern = make_pattern loc in
@@ -737,6 +737,15 @@ let array_encoder loc =
                 ]
             ))))))
 
+let rec determine_is_recursive (_, type_) prev =
+  match type_ with
+  | Scalar _ -> prev
+  | Enum _ -> prev
+  | Object _
+  | InputObject _
+  | Interface _
+  | Union _ -> Recursive
+
 let generate_encoders schema loc map_loc = 
   function
   | [Operation { 
@@ -745,9 +754,12 @@ let generate_encoders schema loc map_loc =
       (spanning, to_schema_type_ref variable_type.item)
     ) item 
           |> extract_variable_types schema TypeSet.empty
-          |> (fun types -> TypeSet.fold (fun element t -> (generate_encoder schema map_loc element)::t) types [])
-          |> (fun encoders -> (optional_encoder loc)::(array_encoder loc)::encoders)
-  | [Operation { item = { o_variable_definitions = None }}] -> []
+          |> (fun types -> (
+                TypeSet.fold determine_is_recursive types Nonrecursive, 
+                TypeSet.fold (fun element t -> (generate_encoder schema map_loc element)::t) types [])
+            )
+          |> (fun (rec_flag, encoders) -> (rec_flag, (optional_encoder loc)::(array_encoder loc)::encoders))
+  | [Operation { item = { o_variable_definitions = None }}] -> (Nonrecursive, [])
   | _ -> raise @@ Unimplemented "variables on other than singular queries/mutations" 
 
 let rec make_make_fun map_loc schema document =
