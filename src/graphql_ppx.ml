@@ -116,6 +116,14 @@ let mapper () =
                            pvb_loc = loc;
                          }
                        ]); pstr_loc = loc};
+                    {
+                      pstr_desc = (
+                        let (rec_flag, encoders) = 
+                          Unifier.generate_encoders schema loc (add_loc delimLength loc) document 
+                        in Pstr_value (rec_flag, encoders)
+                      );
+                      pstr_loc = loc
+                    };
                     {pstr_desc = Pstr_value (Nonrecursive, [
                          {
                            pvb_pat = { ppat_desc = Ppat_var { txt = "make"; loc = loc }; ppat_loc = loc; ppat_attributes = []};
@@ -128,6 +136,7 @@ let mapper () =
                            pvb_loc = loc;
                          }
                        ]); pstr_loc = loc};
+
                   ])
           end
         | _ -> raise (Location.Error (

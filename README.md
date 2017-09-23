@@ -173,9 +173,8 @@ let sendQuery q =>
 
 # Limitations
 
-This implementation is very incomplete. It does *not* support:
+This implementation is incomplete. It does *not* support:
 
-* Arguments with input objects (only scalars, lists, and enums work)
 * Fragments of any kind. This means that interfaces and unions are unusable in
   practice.
 * All GraphQL validations. It will *not* validate argument types and do other
@@ -190,6 +189,7 @@ This implementation is very incomplete. It does *not* support:
 * Floats, ints, strings, booleans, id are converted into their corresponding native
   OCaml types.
 * Custom scalars are parsed as `Js.Json.t`
+* Arguments with input objects 
 
 ## Extra features
 
