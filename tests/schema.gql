@@ -1,0 +1,46 @@
+schema {
+    query: Query
+    mutation: Mutation
+}
+
+type Query {
+    stringField: String!
+    variousScalars: VariousScalars!
+}
+
+type Mutation {
+    mutationWithError: MutationWithErrorResult!
+}
+
+type MutationWithErrorResult {
+    value: SampleResult
+    errors: [SampleError!]
+}
+
+type SampleResult {
+    stringField: String!
+}
+
+type SampleError {
+    field: SampleField!
+    message: String!
+}
+
+enum SampleField {
+    FIRST
+    SECOND
+    THIRD
+}
+
+type VariousScalars {
+    nullableString: String
+    string: String!
+    nullableInt: Int
+    int: Int!
+    nullableFloat: Float
+    float: Float!
+    nullableBoolean: Boolean
+    boolean: Boolean!
+    nullableID: ID
+    id: ID!
+}

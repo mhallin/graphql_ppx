@@ -11,10 +11,13 @@ build:
 		-I src \
 		graphql_ppx.native
 
-test: build
+test: build tests/graphql_schema.json
 	(cd tests && \
 		../node_modules/.bin/bsb -clean-world && \
 		../node_modules/.bin/bsb -make-world)
+
+tests/graphql_schema.json: tests/schema.gql
+	node ./node_modules/gql-tools/cli/gqlschema.js -o tests/graphql_schema.json tests/schema.gql
 
 install: build
 	@opam-installer --prefix=$(PREFIX) graphql_ppx.install

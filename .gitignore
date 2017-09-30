@@ -2,6 +2,7 @@
 /graphql_ppx.native
 /node_modules
 /tests/lib
+/tests/graphql_schema.json
 /lib
 /ppx
 /graphql_ppx.*
