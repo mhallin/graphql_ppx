@@ -91,12 +91,12 @@ let mapper () =
                       [%stri exception Graphql_error];
                       [%stri let query = [%e Exp.constant ~loc (Const_string (reprinted_query, delim))]];
                       [%stri let parse = fun value -> [%e 
-                               Unifier.unify_document_schema (add_loc delimLength loc) schema document
+                               Result_decoder.unify_document_schema (add_loc delimLength loc) schema document
                              ]];
                       {
                         pstr_desc = (
                           let (rec_flag, encoders) = 
-                            Unifier.generate_encoders schema loc (add_loc delimLength loc) document 
+                            Variable_encoder.generate_encoders schema loc (add_loc delimLength loc) document 
                           in Pstr_value (rec_flag, encoders)
                         );
                         pstr_loc = loc
