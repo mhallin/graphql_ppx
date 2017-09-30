@@ -1,0 +1,20 @@
+language: node_js
+
+node_js:
+  - "8"
+
+before_install:
+  - sudo add-apt-repository ppa:avsm/ppa -y
+  - sudo apt-get -qq update
+  - sudo apt-get install -y ocaml ocaml-native-compilers camlp4-extra opam
+  - OPAMYES=1 opam init
+  - eval `opam config env`
+
+before_script:
+  - ln -fs graphql_ppx.native ppx
+  - yarn
+
+script:
+  - OPAMYES=1 opam pin add graphql_ppx .
+  - make
+  - make test

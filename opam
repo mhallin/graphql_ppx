@@ -20,5 +20,5 @@ depends: [
   "ocaml-migrate-parsetree" {build}
   "result" {build}
   "yojson" {build}
-  "ppx_tools" {test}
+  "ppx_tools" {build}
 ]

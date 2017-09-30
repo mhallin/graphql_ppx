@@ -12,13 +12,13 @@
   "devDependencies": {
     "bs-platform": "^1.9.2",
     "graphql": "^0.11.6",
-    "request": "^2.82.0"
+    "gql-tools": "^0.0.15"
   },
   "scripts": {
     "preinstall": "if [ ! -x \"$(opam config var graphql_ppx:bin)/graphql_ppx.native\" ]; then echo 'You must install graphql_ppx through opam before using this package. Run `opam install graphql_ppx`'; fi",
-    "postinstall": "if [ ! -f ./ppx ]; then ln -s \"$(opam config var graphql_ppx:bin)/graphql_ppx.native\" ./ppx && chmod +x ppx; fi"
+    "postinstall": "if [ ! -e ./ppx ]; then ln -fs \"$(opam config var graphql_ppx:bin)/graphql_ppx.native\" ./ppx; fi"
   },
   "dependencies": {
-    "gql-tools": "^0.0.15"
+    "request": "^2.82.0"
   }
 }
