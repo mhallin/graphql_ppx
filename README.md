@@ -3,6 +3,8 @@
 > *Work in progress:* only a small subset of GraphQL is implemented and there
 > are probably a lot of bugs.
 
+[![Build Status](https://travis-ci.org/mhallin/graphql_ppx.svg?branch=master)](https://travis-ci.org/mhallin/graphql_ppx)
+
 This library lets you construct type-safe and validated queries at compile time,
 and generates response validation code for you. If you're writing a
 [Bucklescript](https://bucklescript.github.io/bucklescript/Manual.html) app that
