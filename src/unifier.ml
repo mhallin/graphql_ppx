@@ -2,7 +2,7 @@ open Ast
 open Source_pos
 open Schema
 
-open Ast_404
+open Ast_402
 open Parsetree
 open Asttypes
 
@@ -44,48 +44,6 @@ let some_or o d = match o with
   | Some v -> v
   | None -> d
 
-let make_simple_type name loc =
-  { ptyp_desc = 
-      Ptyp_constr ({ txt = Longident.parse name; loc = loc}, [])
-  ; ptyp_loc = loc; ptyp_attributes = [] }
-
-let make_error_raiser loc = 
-  Pexp_apply ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"; loc = loc};
-               pexp_loc = loc; pexp_attributes = []},
-              [(Nolabel, 
-                {pexp_desc = Pexp_construct ({txt = Longident.Lident "Graphql_error"; loc = loc},
-                                             None);
-                 pexp_loc = loc; pexp_attributes = []})])
-
-let make_match_fun loc decoder none_arm some_arm = 
-  Pexp_match (
-    {pexp_desc = Pexp_apply ({pexp_desc = Pexp_ident{txt = Longident.parse decoder; loc = loc};
-                              pexp_loc = loc; pexp_attributes = []},
-                             [(Nolabel, {pexp_desc = Pexp_ident {txt=Longident.Lident "value"; loc = loc};
-                                         pexp_loc = loc; pexp_attributes = []})]);
-     pexp_loc = loc; pexp_attributes = []},
-    [
-      {pc_lhs = {ppat_desc = Ppat_construct ({txt = Longident.Lident "None"; loc = loc}, None);
-                 ppat_loc = loc; ppat_attributes = []};
-       pc_guard = None;
-       pc_rhs = {pexp_desc = none_arm;
-                 pexp_loc = loc; pexp_attributes = []}
-      };
-      {
-        pc_lhs = {ppat_desc = Ppat_construct ({txt = Longident.Lident "Some"; loc = loc},
-                                              Some {ppat_desc = Ppat_var { txt = "value"; loc = loc};
-                                                    ppat_loc = loc; ppat_attributes = []});
-                  ppat_loc = loc; ppat_attributes = [];};
-        pc_guard = None;
-        pc_rhs = {
-          pexp_desc = some_arm;
-          pexp_loc = loc;
-          pexp_attributes = [];
-        };
-      }
-    ]
-  )
-
 let mangle_enum_name = String.uncapitalize
 
 let make_expression loc pexp_desc  = {
@@ -117,82 +75,63 @@ let make_expression_from_string loc func_name =
 
 let rec unify_type map_loc span ty schema (selection_set: selection list spanning option) =
   let loc = map_loc span in
-  let make_match_fun = make_match_fun loc in
-  let make_expression = make_expression loc in
-  let make_type = make_type_from_string loc in
-  let make_value_expression = make_value_expression loc in
-  let make_expression_from_string = make_expression_from_string loc in
-  let make_pattern = make_pattern loc in
   match ty with
   | Ntr_nullable t ->
-    make_match_fun "Js.Json.decodeNull" 
-      (Pexp_construct ({ txt = Longident.Lident "Some"; loc = loc }, 
-                       Some (make_expression (unify_type map_loc span t schema selection_set))))
-      (Pexp_construct ({ txt = Longident.Lident "None"; loc = loc }, None))
-  | Ntr_list t -> 
-    make_match_fun "Js.Json.decodeArray" (make_error_raiser loc)
-      (Pexp_apply (
-          make_expression (make_expression_from_string "Array.map"),
-          [(Nolabel, make_expression (
-               Pexp_fun (
-                 Nolabel,
-                 None,
-                 make_pattern (Ppat_var { txt = "value"; loc = loc }),
-                 make_expression (unify_type map_loc span t schema selection_set)
-               );
-             ));
-           (Nolabel, make_value_expression "value")]
-        ))
+    [%expr match Js.Json.decodeNull value with
+      | None -> Some [%e unify_type map_loc span t schema selection_set]
+      | Some _ -> None
+    ] [@metaloc loc]
+  | Ntr_list t ->
+    [%expr match Js.Json.decodeArray value with
+      | None -> raise Graphql_error
+      | Some value -> Array.map (fun value -> [%e unify_type map_loc span t schema selection_set]) value
+    ] [@metaloc loc]
   | Ntr_named n -> match lookup_type schema n with
     | None -> raise_error map_loc span ("Could not find type " ^ n)
     | Some Scalar { sm_name = "ID" } 
     | Some Scalar { sm_name = "String" } ->
-      make_match_fun "Js.Json.decodeString" (make_error_raiser loc)
-        (Pexp_constraint (make_value_expression "value", make_type "string"))
+      [%expr match Js.Json.decodeString value with
+        | None -> raise Graphql_error
+        | Some value -> (value : string)
+      ] [@metaloc loc]
     | Some Scalar { sm_name = "Int" } ->
-      make_match_fun "Js.Json.decodeNumber" (make_error_raiser loc)
-        (Pexp_apply (
-            make_value_expression "int_of_float",
-            [(Nolabel, make_value_expression "value")]))
+      [%expr match Js.Json.decodeNumber value with
+        | None -> raise Graphql_error
+        | Some value -> int_of_float value
+      ] [@metaloc loc]
     | Some Scalar { sm_name = "Float" } ->
-      make_match_fun "Js.Json.decodeNumber" (make_error_raiser loc)
-        (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
+      [%expr match Js.Json.decodeNumber value with
+        | None -> raise Graphql_error
+        | Some value -> value
+      ] [@metaloc loc]
     | Some Scalar { sm_name = "Boolean" } ->
-      make_match_fun "Js.Json.decodeBoolean" (make_error_raiser loc)
-        (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
+      [%expr match Js.Json.decodeBoolean value with
+        | None -> raise Graphql_error
+        | Some value -> value
+      ] [@metaloc loc]
     | Some Scalar _ -> 
-      (Pexp_ident {txt=Longident.Lident "value"; loc = loc})
+      Ast_helper.(Exp.ident ~loc:loc {txt=Longident.Lident "value"; loc = loc})
     | Some ((Object o) as ty) ->
       unify_selection_set map_loc span schema ty selection_set
     | Some Enum { em_name; em_values } ->
-      let enum_ty = {
-        ptyp_desc = Ptyp_variant (
-            List.map (fun { evm_name } -> Rtag (evm_name, [], true, [])) em_values,
-            Closed, None
-          );
-        ptyp_loc = loc;
-        ptyp_attributes = [];
-      }
+      let enum_ty = Ast_helper.(
+          Typ.variant ~loc:loc
+            (List.map (fun { evm_name } -> Rtag (evm_name, [], true, [])) em_values)
+            Closed None)
       in
-      let enum_vals =
-        Pexp_match (
-          make_value_expression "value",
-          List.concat [
-            List.map (fun { evm_name } -> {
-                  pc_lhs = {ppat_desc = Ppat_constant (Pconst_string (evm_name, None)); ppat_loc = loc; ppat_attributes = []};
-                  pc_guard = None;
-                  pc_rhs = make_expression (Pexp_variant (evm_name, None)) 
-                }) em_values;
-            [{
-              pc_lhs = {ppat_desc = Ppat_any; ppat_loc = loc; ppat_attributes = []};
-              pc_guard = None;
-              pc_rhs = make_expression (make_error_raiser loc)
-            }]
-          ]
-        )
+      let enum_vals = Ast_helper.(
+          Exp.match_ ~loc:loc [%expr value]
+            (List.concat [
+                List.map (fun { evm_name } ->
+                    Exp.case
+                      (Pat.constant ~loc:loc (Const_string (evm_name, None)))
+                      (Exp.variant ~loc:loc evm_name None)) em_values;
+                [Exp.case (Pat.any ()) [%expr raise Graphql_error]]]))
       in
-      make_match_fun "Js.Json.decodeString" (make_error_raiser loc)
-        (Pexp_constraint (make_expression enum_vals, enum_ty))
+      [%expr match Js.Json.decodeString value with
+        | None -> raise Graphql_error
+        | Some value -> ([%e enum_vals] : [%t enum_ty])
+      ] [@metaloc loc]
     | Some ((Interface o) as ty) ->
       unify_selection_set map_loc span schema ty selection_set
     | Some InputObject obj -> raise_error map_loc span "Can't have fields on input objects"
@@ -200,9 +139,8 @@ let rec unify_type map_loc span ty schema (selection_set: selection list spannin
 
 and unify_variant map_loc span ty schema selection_set =
   let loc = map_loc span in
-  let make_expression_from_string = make_expression_from_string loc in
   let rec match_loop ty selection_set = match selection_set with
-    | [] -> make_error_raiser loc
+    | [] -> [%expr raise Graphql_error] [@metaloc loc]
     | Field { item; span } :: tl -> begin
         match lookup_field ty item.fd_name.item with
         | None -> raise_error map_loc span ("Unknown field on type " ^ type_name ty)
@@ -211,134 +149,29 @@ and unify_variant map_loc span ty schema selection_set =
           let inner_type = match (to_native_type_ref field_meta.fm_field_type) with
             | Ntr_list _ | Ntr_named _ -> raise_error map_loc span "Variant field must only contain nullable fields"
             | Ntr_nullable i -> i in
-          Pexp_let (
-            Nonrecursive,
-            [
-              {
-                pvb_pat = {ppat_desc = Ppat_var { txt = "temp"; loc = loc };
-                           ppat_loc = loc; ppat_attributes = []};
-                pvb_expr = {
-                  pexp_desc = Pexp_apply ({
-                      pexp_desc = make_expression_from_string "Js.Dict.unsafeGet";
-                      pexp_loc = loc;
-                      pexp_attributes = [];
-                    }, [
-                        (Nolabel, { pexp_desc = Pexp_ident { txt = Longident.Lident "value"; loc = loc};
-                                    pexp_loc = loc; pexp_attributes = []});
-                        (Nolabel, { pexp_desc = Pexp_constant (Pconst_string (key, None));
-                                    pexp_loc = loc; pexp_attributes = []});
-                      ]);
-                  pexp_loc = loc;
-                  pexp_attributes = [];
-                };
-                pvb_loc = loc;
-                pvb_attributes = [];
-              }
-            ],
-            {
-              pexp_desc = Pexp_match (
-                  {
-                    pexp_desc = Pexp_apply ({
-                        pexp_desc = make_expression_from_string "Js.Json.decodeNull";
-                        pexp_loc = loc;
-                        pexp_attributes = [];
-                      },
-                        [
-                          (Nolabel, { pexp_desc = Pexp_ident { txt = Longident.Lident "temp"; loc = loc};
-                                      pexp_loc = loc; pexp_attributes = []});
-                        ]);
-                    pexp_loc = loc;
-                    pexp_attributes = [];
-                  },
-                  [
-                    {
-                      pc_lhs = {
-                        ppat_desc = Ppat_construct ({txt = Longident.parse "Some"; loc = loc}, 
-                                                    Some {ppat_desc = Ppat_any;
-                                                          ppat_loc = loc;
-                                                          ppat_attributes = []});
-                        ppat_loc = loc; ppat_attributes = []};
-                      pc_guard = None;
-                      pc_rhs = {
-                        pexp_desc = match_loop ty tl;
-                        pexp_loc = loc;
-                        pexp_attributes = [];
-                      };
-                    };
-                    {
-                      pc_lhs = {
-                        ppat_desc = Ppat_construct ({ txt = Longident.parse "None"; loc = loc }, None);
-                        ppat_loc = loc; ppat_attributes = [];};
-                      pc_guard = None;
-                      pc_rhs = {
-                        pexp_desc = Pexp_let (
-                            Nonrecursive,
-                            [
-                              {
-                                pvb_pat = {ppat_desc = Ppat_var { txt = "value"; loc = loc };
-                                           ppat_loc = loc; ppat_attributes = []};
-                                pvb_expr = {
-                                  pexp_desc = Pexp_ident { txt = Longident.Lident "temp"; loc = loc};
-                                  pexp_loc = loc;
-                                  pexp_attributes = [];
-                                };
-                                pvb_loc = loc;
-                                pvb_attributes = [];
-                              }
-                            ],
-                            {pexp_desc = 
-                               Pexp_variant (
-                                 String.capitalize key,
-                                 Some {
-                                   pexp_desc = unify_type map_loc span inner_type schema item.fd_selection_set;
-                                   pexp_loc = loc;
-                                   pexp_attributes = [];
-                                 }
-                               );
-                             pexp_loc = loc;
-                             pexp_attributes = []
-                            });
-                        pexp_loc = loc;
-                        pexp_attributes = [];
-                      };
-                    };
-                  ]
-                );
-              pexp_loc = loc;
-              pexp_attributes = [];
-            })
+          [%expr
+            let temp = Js.Dict.unsafeGet value [%e Ast_helper.(Exp.constant ~loc:loc (Const_string (key, None)))] in
+            match Js.Json.decodeNull temp with
+            | None -> let value = temp in 
+              [%e Ast_helper.(Exp.variant ~loc:loc 
+                                (String.capitalize key)
+                                (Some (unify_type map_loc span inner_type schema item.fd_selection_set)))]
+            | Some _ -> [%e match_loop ty tl]] [@metaloc loc]
       end
     | FragmentSpread { span } :: _ -> raise_error map_loc span "Variant selections can only contain fields"
     | InlineFragment { span } :: _ -> raise_error map_loc span "Variant selections can only contain fields"
   in
   match ty with
   | Ntr_nullable t -> 
-    make_match_fun loc "Js.Json.decodeNull" 
-      (Pexp_construct ({ txt = Longident.Lident "Some"; loc = loc }, Some {
-           pexp_desc = (unify_variant map_loc span t schema selection_set);
-           pexp_loc = loc;
-           pexp_attributes = [];
-         }))
-      (Pexp_construct ({ txt = Longident.Lident "None"; loc = loc }, None))
+    [%expr match Js.Json.decodeNull value with
+      | None -> None
+      | Some value -> Some [%e unify_variant map_loc span t schema selection_set]
+    ] [@metaloc loc]
   | Ntr_list t ->
-    make_match_fun loc "Js.Json.decodeArray" (make_error_raiser loc)
-      (Pexp_apply (
-          {pexp_desc = make_expression_from_string "Array.map";
-           pexp_loc = loc; pexp_attributes = []},
-          [(Nolabel, {
-               pexp_desc = Pexp_fun (
-                   Nolabel,
-                   None,
-                   {ppat_desc = Ppat_var { txt = "value"; loc = loc }; ppat_loc = loc; ppat_attributes = []},
-                   {pexp_desc = (unify_variant map_loc span t schema selection_set);
-                    pexp_loc = loc; pexp_attributes = []}
-                 );
-               pexp_loc = loc; pexp_attributes = []});
-           (Nolabel, {
-               pexp_desc = Pexp_ident { txt = Longident.Lident "value"; loc = loc };
-               pexp_loc = loc; pexp_attributes = [];
-             })]
-        ))
+    [%expr match Js.Json.decodeArray value with
+      | None -> raise Graphql_error
+      | Some value -> Array.map (fun value -> [%e unify_variant map_loc span t schema selection_set]) value
+    ] [@metaloc loc]
   | Ntr_named n -> match lookup_type schema n with
     | None -> raise_error map_loc span ("Could not find type " ^ n)
     | Some Scalar _ -> raise_error map_loc span "Variant fields can only be applied to object types"
@@ -348,9 +181,10 @@ and unify_variant map_loc span ty schema selection_set =
     | Some InputObject _ -> raise_error map_loc span "Variant fields can only be applied to object types"
     | Some ((Object _) as ty) ->
       match selection_set with
-      | Some { item } -> 
-        make_match_fun loc "Js.Json.decodeObject" (make_error_raiser loc)
-          (match_loop ty item)
+      | Some { item } ->
+        [%expr match Js.Json.decodeObject value with
+          | None -> raise Graphql_error
+          | Some value -> [%e match_loop ty item]] [@metaloc loc]
       | None -> raise_error map_loc span "Variant fields need a selection set"
 
 and unify_field map_loc field_span ty schema =
@@ -358,7 +192,6 @@ and unify_field map_loc field_span ty schema =
   let field_meta = lookup_field ty ast_field.fd_name.item in
   let key = (some_or ast_field.fd_alias ast_field.fd_name).item in
   let loc = map_loc field_span.span in
-  let make_expression_from_string = make_expression_from_string loc in
   let is_variant = List.exists (fun { item = { d_name = { item } } } -> item = "bsVariant") ast_field.fd_directives in
   let sub_unifier = if is_variant then unify_variant else unify_type in
   match field_meta with
@@ -366,35 +199,14 @@ and unify_field map_loc field_span ty schema =
   | Some field_meta ->
     (
       { txt = Longident.Lident key; loc = loc },
-      {
-        pexp_desc = Pexp_let (
-            Nonrecursive, 
-            [{pvb_pat = {ppat_desc = Ppat_var {txt="value"; loc = loc}; ppat_loc = loc; ppat_attributes = []};
-              pvb_loc = loc;
-              pvb_attributes = [];
-              pvb_expr = {
-                pexp_desc = Pexp_apply ({
-                    pexp_desc = make_expression_from_string "Js.Dict.unsafeGet";
-                    pexp_loc = loc;
-                    pexp_attributes = [];
-                  },
-                    [
-                      (Nolabel, { pexp_desc = Pexp_ident { txt = Longident.Lident "value"; loc = loc};
-                                  pexp_loc = loc; pexp_attributes = []});
-                      (Nolabel, { pexp_desc = Pexp_constant (Pconst_string (key, None));
-                                  pexp_loc = loc; pexp_attributes = []});
-                    ]);
-                pexp_loc = loc;
-                pexp_attributes = [];
-              }}],
-            {
-              pexp_desc = sub_unifier map_loc field_span.span (to_native_type_ref field_meta.fm_field_type) schema ast_field.fd_selection_set;
-              pexp_loc = loc;
-              pexp_attributes = [];
-            });
-        pexp_loc = loc;
-        pexp_attributes = [];
-      }
+      [%expr
+        let value = Js.Dict.unsafeGet value [%e Ast_helper.Exp.constant ~loc:loc (Const_string (key, None))]
+        in [%e sub_unifier 
+            map_loc
+            field_span.span
+            (to_native_type_ref field_meta.fm_field_type)
+            schema 
+            ast_field.fd_selection_set]]
     )
 
 and unify_selection map_loc schema ty selection = match selection with
@@ -405,8 +217,9 @@ and unify_selection map_loc schema ty selection = match selection with
 and unify_selection_set map_loc span schema ty selection_set = match selection_set with
   | None -> raise_error map_loc span "Must select subfields on objects"
   | Some { item } -> let loc = map_loc span in
-    make_match_fun loc "Js.Json.decodeObject" (make_error_raiser loc)
-      (Pexp_extension (
+    [%expr match Js.Json.decodeObject value with
+      | None -> raise Graphql_error
+      | Some value -> [%e {pexp_loc = loc; pexp_attributes = []; pexp_desc = (Pexp_extension (
           {txt = "bs.obj"; loc = loc},
           PStr [{
               pstr_desc = Pstr_eval (
@@ -418,7 +231,9 @@ and unify_selection_set map_loc span schema ty selection_set = match selection_s
                   []);
               pstr_loc = loc;
             }]
-        ))
+        ))}]
+    ] [@metaloc loc]
+
 
 let unify_document_schema map_loc schema document =
   match document with
@@ -435,13 +250,13 @@ let unify_document_schema map_loc schema document =
 let apply loc func_name expression =
   Pexp_apply (
     make_expression loc (make_expression_from_string loc func_name),
-    [(Nolabel, expression)]
+    [("", expression)]
   )
 
 let apply_multi loc func_name expressions =
   Pexp_apply (
     make_expression loc (Pexp_ident { txt = Longident.parse func_name; loc}),
-    List.map (fun expression -> (Nolabel, expression)) expressions
+    List.map (fun expression -> ("", expression)) expressions
   )
 
 let apply_js loc x y =
@@ -452,7 +267,7 @@ let apply_js loc x y =
           (make_expression (
               Pexp_ident
                 Longident.{txt = Ldot (Lident "Js_unsafe", "unsafe_downgrade"); loc}),
-           [(Nolabel, x)])),
+           [("", x)])),
      y)
 
 let to_argument_meta { fm_name; fm_description; fm_field_type } = 
@@ -507,7 +322,7 @@ let make_value_binding loc pattern expression = {
 
 let make_function loc ~from:name expression =
   let make_pattern = make_pattern loc in
-  make_expression loc (Pexp_fun (Nolabel, None, make_pattern (Ppat_var {loc; txt = name; }), expression))
+  make_expression loc (Pexp_fun ("", None, make_pattern (Ppat_var {loc; txt = name; }), expression))
 
 let function_name_string x = "json_of_" ^ Schema.extract_name_from_type_meta x
 
@@ -568,10 +383,10 @@ let rec list_of_fields schema loc expr fields =
               Pexp_tuple [
                 make_expression (
                   Pexp_tuple [
-                    make_expression (Pexp_constant (Pconst_string (am_name, None)));
+                    make_expression (Pexp_constant (Const_string (am_name, None)));
                     make_expression @@ Pexp_apply (
                       parser_,
-                      [(Nolabel, make_expression @@ apply_js loc expr am_name)]
+                      [("", make_expression @@ apply_js loc expr am_name)]
                     )
                   ]
                 );
@@ -617,8 +432,8 @@ let generate_encoder schema map_loc (spanning, x) =
                           pexp_loc = loc; pexp_attributes = []
                         },
                         [
-                          (Nolabel, {
-                              pexp_desc = Pexp_constant (Pconst_string(evm_name, None));
+                          ("", {
+                              pexp_desc = Pexp_constant (Const_string(evm_name, None));
                               pexp_loc = loc; pexp_attributes = [];
                             });
                         ]
@@ -659,14 +474,14 @@ let make_encoder_function_type loc input_type =
       ["a"], 
       make_type (
         Ptyp_arrow (
-          Nolabel,
+          "",
           make_type (
             Ptyp_arrow (
-              Nolabel, make_type (Ptyp_var "a"), json_t)
+              "", make_type (Ptyp_var "a"), json_t)
           ),
           make_type (
             Ptyp_arrow (
-              Nolabel,
+              "",
               make_type (
                 Ptyp_constr (
                   {loc; txt = Longident.Lident input_type},
@@ -764,64 +579,29 @@ let generate_encoders schema loc map_loc =
 
 let rec make_make_fun map_loc schema document =
   let make_make_triple loc variables =
-    (Pexp_extension (
-        {txt = "bs.obj"; loc = loc},
-        PStr [
-          {
-            pstr_desc = Pstr_eval (
-                {pexp_desc = Pexp_record ([(
-                     { txt = Longident.Lident "query"; loc = loc },
-                     {
-                       pexp_desc = Pexp_ident { txt = Longident.Lident "query"; loc = loc};
-                       pexp_loc = loc;
-                       pexp_attributes = [];
-                     }
-                   );
-                    (
-                      { txt = Longident.Lident "variables"; loc = loc },
-                      {
-                        pexp_desc = variables;
-                        pexp_loc = loc;
-                        pexp_attributes = [];
-                      }
-                    );
-                    (
-                      { txt = Longident.Lident "parse"; loc = loc },
-                      {
-                        pexp_desc = Pexp_ident { txt = Longident.Lident "parse"; loc = loc};
-                        pexp_loc = loc;
-                        pexp_attributes = [];
-                      }
-                    )
-                   ], None);
-                 pexp_loc = loc;
-                 pexp_attributes = [];
-                }, []);
-            pstr_loc =loc;
-          }]
-      )) in
+    Ast_helper.Exp.extension ~loc:loc
+      ({txt = "bs.obj"; loc = loc},
+       PStr [
+         [%stri { 
+           query = query; 
+           variables = [%e variables]; 
+           parse = parse; }] [@metaloc loc]
+       ]) in
   match document with
   | [Operation { item = { o_variable_definitions = Some { item; span } }}] -> begin
       let rec make_labelled_function defs body = match defs with
-        | [] -> Pexp_fun (
-            Nolabel,
-            None,
-            {ppat_desc = Ppat_construct ({ txt = Longident.Lident "()"; loc = map_loc span }, None );
-             ppat_loc = map_loc span; ppat_attributes = []},
-            { pexp_desc = body; pexp_loc = map_loc span; pexp_attributes = []; })
-        | (name, def) :: tl -> let name_loc = map_loc name.span in 
-          Pexp_fun (
-            (match def.vd_type.item with
-             | Tr_non_null_list _ | Tr_non_null_named _ -> Labelled name.item
-             | Tr_list _ | Tr_named _ -> Optional name.item),
-            None,
-            {ppat_desc = Ppat_var { txt = name.item; loc = name_loc}; ppat_loc = name_loc; ppat_attributes = []},
-            {
-              pexp_desc = make_labelled_function tl body;
-              pexp_loc = name_loc;
-              pexp_attributes = [];
-            }
-          ) in
+        | [] -> [%expr fun () -> [%e body]] [@metaloc map_loc span]
+        | (name, def) :: tl -> let name_loc = map_loc name.span in
+          Ast_helper.(
+            Exp.fun_ 
+              ~loc:name_loc
+              (match def.vd_type.item with
+               | Tr_non_null_list _ | Tr_non_null_named _ -> name.item
+               | Tr_list _ | Tr_named _ -> "?" ^ name.item)
+              None
+              (Pat.var ~loc:name_loc {txt=name.item; loc=name_loc})
+              (make_labelled_function tl body))
+      in
       let rec make_body defs = match defs with
         | (name, def) :: tl -> 
           let parser_ = (
@@ -832,68 +612,22 @@ let rec make_make_fun map_loc schema document =
           begin match parser_ with
             | None -> make_body tl
             | Some parser_ ->
-              Pexp_construct (
-                { txt = Longident.Lident "::"; loc = map_loc name.span },
-                Some {
-                  pexp_desc = Pexp_tuple [
-                      {
-                        pexp_desc = Pexp_tuple [
-                            {
-                              pexp_desc = Pexp_constant (Pconst_string (name.item, None));
-                              pexp_loc = map_loc name.span;
-                              pexp_attributes = [];
-                            };
-                            {
-                              pexp_desc = Pexp_apply (
-                                  parser_,
-                                  [(Nolabel, make_value_expression (map_loc name.span) name.item)]
-                                )
-                            ;                         
-
-
-                              pexp_loc = map_loc name.span;
-                              pexp_attributes = [];
-                            };
-                          ];
-                        pexp_loc = map_loc name.span;
-                        pexp_attributes = [];
-                      };
-                      {
-                        pexp_desc = make_body tl;
-                        pexp_loc = map_loc name.span;
-                        pexp_attributes = [];
-                      };
-                    ];
-                  pexp_loc = map_loc name.span;
-                  pexp_attributes = [];
-                }
-              )
+              [%expr
+                (
+                  [%e Ast_helper.Exp.constant ~loc:(map_loc name.span) (Const_string (name.item, None))],
+                  [%e parser_] [%e Ast_helper.Exp.ident ~loc:(map_loc name.span) {txt=Longident.parse name.item; loc=map_loc name.span}]
+                ) :: [%e make_body tl]] [@metaloc map_loc name.span]
           end
-        | [] -> Pexp_construct ({ txt = Longident.Lident "[]"; loc = map_loc span}, None)
+        | [] -> [%expr []] [@metaloc map_loc span]
       in
       let loc = map_loc span in
-      let make_expression_from_string = make_expression_from_string loc in
       let variable_ctor_body = 
-        Pexp_apply (
-          {pexp_desc = make_expression_from_string "Js.Json.object_";
-           pexp_loc = loc; pexp_attributes = []},
-          [(Nolabel, {pexp_desc = Pexp_apply ({
-               pexp_desc = make_expression_from_string "Js.Dict.fromList";
-               pexp_loc = loc; pexp_attributes = []}
-               ,
-               [(Nolabel, {pexp_desc = (make_body item); pexp_loc = loc; pexp_attributes = []})]);
-              pexp_loc = loc; pexp_attributes = []})]) in
+        [%expr Js.Json.object_ (Js.Dict.fromList [%e make_body item])] [@metaloc loc]
+      in
       make_labelled_function item (make_make_triple loc variable_ctor_body )
     end
   | [Operation { item = { o_variable_definitions = None }; span }] -> begin
       let loc = map_loc span in
-      let make_expression_from_string = make_expression_from_string loc in
-      Pexp_fun (
-        Nolabel,
-        None,
-        {ppat_desc = Ppat_construct ({ txt = Longident.Lident "()"; loc = map_loc span }, None );
-         ppat_loc = map_loc span; ppat_attributes = []},
-        { pexp_desc = make_make_triple loc (make_expression_from_string "Js.Json.null");
-          pexp_loc = map_loc span; pexp_attributes = []; })
+      [%expr fun () -> [%e make_make_triple loc [%expr Js.Json.null]]]
     end
   | _ -> raise @@ Unimplemented "variables on other than singular queries/mutations"

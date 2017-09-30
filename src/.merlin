@@ -3,3 +3,4 @@ B ../_build/src
 PKG ocaml-migrate-parsetree
 PKG result
 PKG yojson
+PKG ppx_tools.metaquot

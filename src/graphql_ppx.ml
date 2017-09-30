@@ -1,8 +1,8 @@
 open Migrate_parsetree
 
-module To_current = Convert(OCaml_404)(OCaml_current)
+module To_current = Convert(OCaml_402)(OCaml_current)
 
-open Ast_404
+open Ast_402
 
 open Source_pos
 
@@ -71,7 +71,7 @@ let mapper () =
         match pstr with
         | PStr [{ pstr_desc = Pstr_eval ({
             pexp_loc = loc; 
-            pexp_desc = Pexp_constant (Pconst_string (query, delim))}, _)}] -> begin
+            pexp_desc = Pexp_constant (Const_string (query, delim))}, _)}] -> begin
             let lexer = Gql_lexer.make query in
             let delimLength = match delim with | Some s -> 2 + String.length s | None -> 1 in
             match Gql_lexer.consume lexer with
@@ -86,58 +86,23 @@ let mapper () =
                 ))
               | Result.Ok document ->
                 let reprinted_query = Gql_printer.print_document document in
-                Mod.mk ~loc (Pmod_structure [
-                    {pstr_desc = Pstr_exception {
-                         pext_name = { txt = "Graphql_error"; loc = loc};
-                         pext_kind = Pext_decl (Pcstr_tuple [], None);
-                         pext_loc = loc;
-                         pext_attributes = [];
-                       }; pstr_loc = loc;};
-                    {pstr_desc = Pstr_value (Nonrecursive, [
-                         {
-                           pvb_pat = Pat.var ~loc {txt = "query"; loc = loc};
-                           pvb_expr = Exp.constant ~loc (Pconst_string (reprinted_query, delim));
-                           pvb_attributes = [];
-                           pvb_loc = loc;
-                         }
-                       ]); pstr_loc = loc};
-                    {pstr_desc = Pstr_value (Nonrecursive, [
-                         {
-                           pvb_pat = { ppat_desc = Ppat_var { txt = "parse"; loc = loc }; ppat_loc = loc; ppat_attributes = []};
-                           pvb_expr = { 
-                             pexp_desc = Pexp_fun (Nolabel, None, {ppat_desc = Ppat_var {txt="value"; loc=loc}; ppat_loc = loc; ppat_attributes = []}, {
-                                 pexp_loc = loc;
-                                 pexp_attributes = [];
-                                 pexp_desc = Unifier.unify_document_schema (add_loc delimLength loc) schema document;
-                               });
-                             pexp_loc = loc; pexp_attributes = []; 
-                           };
-                           pvb_attributes = [];
-                           pvb_loc = loc;
-                         }
-                       ]); pstr_loc = loc};
-                    {
-                      pstr_desc = (
-                        let (rec_flag, encoders) = 
-                          Unifier.generate_encoders schema loc (add_loc delimLength loc) document 
-                        in Pstr_value (rec_flag, encoders)
-                      );
-                      pstr_loc = loc
-                    };
-                    {pstr_desc = Pstr_value (Nonrecursive, [
-                         {
-                           pvb_pat = { ppat_desc = Ppat_var { txt = "make"; loc = loc }; ppat_loc = loc; ppat_attributes = []};
-                           pvb_expr = {
-                             pexp_desc = Unifier.make_make_fun (add_loc delimLength loc) schema document;
-                             pexp_loc = loc;
-                             pexp_attributes = [];
-                           };
-                           pvb_attributes = [];
-                           pvb_loc = loc;
-                         }
-                       ]); pstr_loc = loc};
-
-                  ])
+                Mod.mk ~loc
+                  (Pmod_structure [
+                      [%stri exception Graphql_error];
+                      [%stri let query = [%e Exp.constant ~loc (Const_string (reprinted_query, delim))]];
+                      [%stri let parse = fun value -> [%e 
+                               Unifier.unify_document_schema (add_loc delimLength loc) schema document
+                             ]];
+                      {
+                        pstr_desc = (
+                          let (rec_flag, encoders) = 
+                            Unifier.generate_encoders schema loc (add_loc delimLength loc) document 
+                          in Pstr_value (rec_flag, encoders)
+                        );
+                        pstr_loc = loc
+                      };
+                      [%stri let make = [%e Unifier.make_make_fun (add_loc delimLength loc) schema document]];
+                    ])
           end
         | _ -> raise (Location.Error (
             Location.error ~loc "[%graphql] accepts a string, e.g. [%graphql {| { query |}]"
