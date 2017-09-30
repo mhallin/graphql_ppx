@@ -6,6 +6,10 @@ schema {
 type Query {
     stringField: String!
     variousScalars: VariousScalars!
+    lists: Lists!
+
+    scalarsInput(arg: VariousScalarsInput!): String!
+    listsInput(arg: ListsInput!): String!
 }
 
 type Mutation {
@@ -43,4 +47,31 @@ type VariousScalars {
     boolean: Boolean!
     nullableID: ID
     id: ID!
+}
+
+type Lists {
+    nullableOfNullable: [String]
+    nullableOfNonNullable: [String!]
+    nonNullableOfNullable: [String]!
+    nonNullableOfNonNullable: [String!]!
+}
+
+input VariousScalarsInput {
+    nullableString: String
+    string: String!
+    nullableInt: Int
+    int: Int!
+    nullableFloat: Float
+    float: Float!
+    nullableBoolean: Boolean
+    boolean: Boolean!
+    nullableID: ID
+    id: ID!
+}
+
+input ListsInput {
+    nullableOfNullable: [String]
+    nullableOfNonNullable: [String!]
+    nonNullableOfNullable: [String]!
+    nonNullableOfNonNullable: [String!]!
 }
