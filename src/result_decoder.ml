@@ -11,18 +11,18 @@ open Generator_utils
 
 exception Unimplemented of string
 
-let rec unify_type map_loc span ty schema (selection_set: selection list spanning option) =
+let rec unify_type as_record map_loc span ty schema (selection_set: selection list spanning option) =
   let loc = map_loc span in
   match ty with
   | Ntr_nullable t ->
     [%expr match Js.Json.decodeNull value with
-      | None -> Some [%e unify_type map_loc span t schema selection_set]
+      | None -> Some [%e unify_type as_record map_loc span t schema selection_set]
       | Some _ -> None
     ] [@metaloc loc]
   | Ntr_list t ->
     [%expr match Js.Json.decodeArray value with
       | None -> raise Graphql_error
-      | Some value -> Array.map (fun value -> [%e unify_type map_loc span t schema selection_set]) value
+      | Some value -> Array.map (fun value -> [%e unify_type as_record map_loc span t schema selection_set]) value
     ] [@metaloc loc]
   | Ntr_named n -> match lookup_type schema n with
     | None -> raise_error map_loc span ("Could not find type " ^ n)
@@ -50,7 +50,7 @@ let rec unify_type map_loc span ty schema (selection_set: selection list spannin
     | Some Scalar _ -> 
       Ast_helper.(Exp.ident ~loc:loc {txt=Longident.Lident "value"; loc = loc})
     | Some ((Object o) as ty) ->
-      unify_selection_set map_loc span schema ty selection_set
+      unify_selection_set as_record map_loc span schema ty selection_set
     | Some Enum { em_name; em_values } ->
       let enum_ty = Ast_helper.(
           Typ.variant ~loc:loc
@@ -71,7 +71,7 @@ let rec unify_type map_loc span ty schema (selection_set: selection list spannin
         | Some value -> ([%e enum_vals] : [%t enum_ty])
       ] [@metaloc loc]
     | Some ((Interface o) as ty) ->
-      unify_selection_set map_loc span schema ty selection_set
+      unify_selection_set as_record map_loc span schema ty selection_set
     | Some InputObject obj -> raise_error map_loc span "Can't have fields on input objects"
     | Some Union um -> unify_union map_loc span schema um selection_set
 
@@ -93,7 +93,7 @@ and unify_union map_loc span schema union_meta selection_set =
         | None -> raise_error map_loc if_type_condition.span "Could not find type"
         | Some ty -> ty
       in
-      let result_decoder = unify_selection_set map_loc if_selection_set.span schema type_cond_ty (Some if_selection_set) in
+      let result_decoder = unify_selection_set false map_loc if_selection_set.span schema type_cond_ty (Some if_selection_set) in
       let selection_set_loc = map_loc if_selection_set.span in
       let result_variant = Ast_helper.Exp.variant ~loc:selection_set_loc if_type_condition.item (Some result_decoder) in
       Ast_helper.Exp.case
@@ -135,7 +135,7 @@ and unify_variant map_loc span ty schema selection_set =
             | None -> let value = temp in 
               [%e Ast_helper.(Exp.variant ~loc:loc 
                                 (String.capitalize key)
-                                (Some (unify_type map_loc span inner_type schema item.fd_selection_set)))]
+                                (Some (unify_type false map_loc span inner_type schema item.fd_selection_set)))]
             | Some _ -> [%e match_loop ty tl]] [@metaloc loc]
       end
     | FragmentSpread { span } :: _ -> raise_error map_loc span "Variant selections can only contain fields"
@@ -173,7 +173,11 @@ and unify_field map_loc field_span ty schema =
   let key = (some_or ast_field.fd_alias ast_field.fd_name).item in
   let loc = map_loc field_span.span in
   let is_variant = List.exists (fun { item = { d_name = { item } } } -> item = "bsVariant") ast_field.fd_directives in
-  let sub_unifier = if is_variant then unify_variant else unify_type in
+  let is_record = List.exists (fun { item = { d_name = { item } } } -> item = "bsRecord") ast_field.fd_directives in
+  let sub_unifier = 
+    if is_variant then unify_variant 
+    else (unify_type is_record)
+  in
   match field_meta with
   | None -> raise_error map_loc field_span.span ("Unknown field on type " ^ type_name ty)
   | Some field_meta ->
@@ -194,34 +198,58 @@ and unify_selection map_loc schema ty selection = match selection with
   | FragmentSpread _ -> raise @@ Unimplemented "fragment spreads"
   | InlineFragment _ -> raise @@ Unimplemented "inline fragments"
 
-and unify_selection_set map_loc span schema ty selection_set = match selection_set with
+and unify_selection_set as_record map_loc span schema ty selection_set = match selection_set with
   | None -> raise_error map_loc span "Must select subfields on objects"
-  | Some { item } -> let loc = map_loc span in
+  | Some { item } when as_record -> let loc = map_loc span in
     [%expr match Js.Json.decodeObject value with
       | None -> raise Graphql_error
-      | Some value -> [%e {pexp_loc = loc; pexp_attributes = []; pexp_desc = (Pexp_extension (
-          {txt = "bs.obj"; loc = loc},
-          PStr [{
-              pstr_desc = Pstr_eval (
-                  {pexp_desc = Pexp_record (
-                       (List.map (unify_selection map_loc schema ty) item),
-                       None);
-                   pexp_loc = loc;
-                   pexp_attributes = []},
-                  []);
-              pstr_loc = loc;
-            }]
-        ))}]
+      | Some value -> [%e Ast_helper.Exp.record ~loc (List.map (unify_selection map_loc schema ty) item) None]
+    ] [@metaloc loc]
+  | Some { item } -> let loc = map_loc span in
+    let fields = List.map (unify_selection map_loc schema ty) item in
+    let ctor_result_type = (List.mapi 
+                              (fun i (key, _) -> (Longident.last key.txt, [], Ast_helper.Typ.var ~loc ("a" ^ (string_of_int i)))) 
+                              fields)
+    in
+    let rec make_obj_constructor_fn i = function
+      | [] -> Ast_helper.Typ.arrow ~loc "" (Ast_helper.Typ.constr { txt = Longident.Lident "unit"; loc = loc} [])
+                (Ast_helper.Typ.constr ~loc { txt = Longident.parse "Js.t"; loc = loc} [
+                    (Ast_helper.Typ.object_ ~loc
+                       ctor_result_type
+                       Closed)
+                  ])
+      | (key, _) :: next -> Ast_helper.Typ.arrow ~loc (Longident.last key.txt) (Ast_helper.Typ.var ~loc ("a" ^ (string_of_int i)))
+                              (make_obj_constructor_fn (i+1) next)
+    in
+    [%expr match Js.Json.decodeObject value with
+      | None -> raise Graphql_error
+      | Some value -> 
+        [%e
+          Ast_helper.Exp.letmodule ~loc {txt="GQL"; loc=loc} (Ast_helper.Mod.structure ~loc [
+              Ast_helper.Str.primitive ~loc {
+                pval_name = {txt = "make_obj"; loc = loc};
+                pval_type = make_obj_constructor_fn 0 fields;
+                pval_prim = [""];
+                pval_attributes = [({txt = "bs.obj"; loc = loc}, PStr [])];
+                pval_loc = loc;
+              }
+            ])
+            (Ast_helper.Exp.apply ~loc (Ast_helper.Exp.ident ~loc { txt = Longident.parse "GQL.make_obj"; loc = loc})
+               (List.append
+                  (List.map (fun (key, parser) -> (Longident.last key.txt, parser)) fields)
+                  [("", Ast_helper.Exp.construct ~loc { txt = Longident.Lident "()"; loc = loc} None)]
+               ))
+        ]
     ] [@metaloc loc]
 
 
 let unify_document_schema map_loc schema document =
   match document with
   | [Operation { item = { o_type = Query; o_selection_set }; span } ] ->
-    unify_selection_set map_loc span schema (query_type schema) (Some o_selection_set)
+    unify_selection_set false map_loc span schema (query_type schema) (Some o_selection_set)
   | [Operation { item = { o_type = Mutation; o_selection_set }; span } ] -> begin match mutation_type schema with
       | Some mutation_type -> 
-        unify_selection_set map_loc span schema mutation_type (Some o_selection_set)
+        unify_selection_set false map_loc span schema mutation_type (Some o_selection_set)
       | None ->
         raise_error map_loc span "This schema does not contain any mutations"
     end

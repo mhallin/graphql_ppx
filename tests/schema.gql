@@ -12,6 +12,8 @@ type Query {
     listsInput(arg: ListsInput!): String!
 
     dogOrHuman: DogOrHuman!
+
+    nestedObject: NestedObject!
 }
 
 type Mutation {
@@ -88,3 +90,9 @@ type Human {
 }
 
 union DogOrHuman = Dog | Human
+
+type NestedObject {
+    inner: NestedObject
+
+    field: String!
+}

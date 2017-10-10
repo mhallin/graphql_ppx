@@ -48,7 +48,9 @@ let print_directive d =
   (match d.d_arguments with | Some {item} -> print_arguments item | None -> "")
 
 let is_internal_directive d =
-  d.item.d_name.item = "bsVariant"
+  match d.item.d_name.item with
+  | "bsVariant" | "bsRecord" -> true
+  | _ -> false
 
 let print_directives ds =
   " " ^ (ds |> List.filter (fun d -> not @@ is_internal_directive d)
