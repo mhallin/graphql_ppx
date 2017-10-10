@@ -85,20 +85,17 @@ let mapper () =
                   Location.error ~loc:(add_loc delimLength loc e.span) (fmt_parse_err e.item)
                 ))
               | Result.Ok document ->
-                let reprinted_query = Gql_printer.print_document document in
+                let parse_fn = Result_decoder.unify_document_schema (add_loc delimLength loc) schema document in
+                let (rec_flag, encoders) = 
+                  Variable_encoder.generate_encoders schema loc (add_loc delimLength loc) document in
+                let reprinted_query = Gql_printer.print_document schema document in
                 Mod.mk ~loc
                   (Pmod_structure [
                       [%stri exception Graphql_error];
                       [%stri let query = [%e Exp.constant ~loc (Const_string (reprinted_query, delim))]];
-                      [%stri let parse = fun value -> [%e 
-                               Result_decoder.unify_document_schema (add_loc delimLength loc) schema document
-                             ]];
+                      [%stri let parse = fun value -> [%e parse_fn]];
                       {
-                        pstr_desc = (
-                          let (rec_flag, encoders) = 
-                            Variable_encoder.generate_encoders schema loc (add_loc delimLength loc) document 
-                          in Pstr_value (rec_flag, encoders)
-                        );
+                        pstr_desc = (Pstr_value (rec_flag, encoders));
                         pstr_loc = loc
                       };
                       [%stri let make = [%e Unifier.make_make_fun (add_loc delimLength loc) schema document]];

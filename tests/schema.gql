@@ -10,6 +10,8 @@ type Query {
 
     scalarsInput(arg: VariousScalarsInput!): String!
     listsInput(arg: ListsInput!): String!
+
+    dogOrHuman: DogOrHuman!
 }
 
 type Mutation {
@@ -75,3 +77,14 @@ input ListsInput {
     nonNullableOfNullable: [String]!
     nonNullableOfNonNullable: [String!]!
 }
+
+type Dog {
+    name: String!
+    barkVolume: Float!
+}
+
+type Human {
+    name: String!
+}
+
+union DogOrHuman = Dog | Human
