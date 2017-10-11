@@ -11,6 +11,9 @@ open Generator_utils
 
 exception Unimplemented of string
 
+let has_directive name directives =
+  List.exists (fun { item = { d_name = { item } } } -> item = name) directives
+
 let rec unify_type as_record map_loc span ty schema (selection_set: selection list spanning option) =
   let loc = map_loc span in
   match ty with
@@ -172,9 +175,11 @@ and unify_field map_loc field_span ty schema =
   let field_meta = lookup_field ty ast_field.fd_name.item in
   let key = (some_or ast_field.fd_alias ast_field.fd_name).item in
   let loc = map_loc field_span.span in
-  let is_variant = List.exists (fun { item = { d_name = { item } } } -> item = "bsVariant") ast_field.fd_directives in
-  let is_record = List.exists (fun { item = { d_name = { item } } } -> item = "bsRecord") ast_field.fd_directives in
-  let sub_unifier = 
+  let is_variant = has_directive "bsVariant" ast_field.fd_directives in
+  let is_record = has_directive "bsRecord" ast_field.fd_directives in
+  let has_skip = (has_directive "skip" ast_field.fd_directives) 
+                 || (has_directive "include" ast_field.fd_directives) in
+  let sub_unifier =
     if is_variant then unify_variant 
     else (unify_type is_record)
   in
@@ -182,14 +187,23 @@ and unify_field map_loc field_span ty schema =
   let parser_expr = match field_meta with
     | None -> raise_error map_loc field_span.span ("Unknown field on type " ^ type_name ty)
     | Some field_meta ->
-      [%expr
-        let value = Js.Dict.unsafeGet value [%e Ast_helper.Exp.constant ~loc:loc (Const_string (key, None))]
-        in [%e sub_unifier 
-            map_loc
-            field_span.span
-            (to_native_type_ref field_meta.fm_field_type)
-            schema 
-            ast_field.fd_selection_set]]
+      let field_ty = to_native_type_ref field_meta.fm_field_type in
+      let field_ty_is_nullable = is_nullable field_ty in
+      let sub_unifier = sub_unifier map_loc field_span.span field_ty schema ast_field.fd_selection_set in
+      if has_skip then
+        [%expr
+          match Js.Dict.get value [%e Ast_helper.Exp.constant ~loc:loc (Const_string (key, None))] with
+          | None -> None
+          | Some value -> [%e 
+            if field_ty_is_nullable then sub_unifier
+            else [%expr Some [%e sub_unifier]] [@metaloc loc]
+          ]
+        ] [@metaloc loc]
+      else
+        [%expr
+          let value = Js.Dict.unsafeGet value [%e Ast_helper.Exp.constant ~loc:loc (Const_string (key, None))]
+          in [%e sub_unifier]
+        ] [@metaloc loc]
   in
   match List.filter (fun { item = { d_name = { item } } } -> item = "bsDecoder") ast_field.fd_directives with
   | [] -> (field_key, parser_expr)

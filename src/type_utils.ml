@@ -25,3 +25,7 @@ let rec to_schema_type_ref tr = match tr with
   | Tr_named n -> Named n.item
   | Tr_non_null_list l -> NonNull (List (to_schema_type_ref l.item))
   | Tr_non_null_named n -> NonNull (Named n.item)
+
+let is_nullable = function
+  | Ntr_named _ | Ntr_list _ -> false
+  | Ntr_nullable _ -> true
