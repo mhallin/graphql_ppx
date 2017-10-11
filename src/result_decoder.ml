@@ -178,11 +178,10 @@ and unify_field map_loc field_span ty schema =
     if is_variant then unify_variant 
     else (unify_type is_record)
   in
-  match field_meta with
-  | None -> raise_error map_loc field_span.span ("Unknown field on type " ^ type_name ty)
-  | Some field_meta ->
-    (
-      { txt = Longident.Lident key; loc = loc },
+  let field_key = { txt = Longident.Lident key; loc = loc } in
+  let parser_expr = match field_meta with
+    | None -> raise_error map_loc field_span.span ("Unknown field on type " ^ type_name ty)
+    | Some field_meta ->
       [%expr
         let value = Js.Dict.unsafeGet value [%e Ast_helper.Exp.constant ~loc:loc (Const_string (key, None))]
         in [%e sub_unifier 
@@ -191,7 +190,17 @@ and unify_field map_loc field_span ty schema =
             (to_native_type_ref field_meta.fm_field_type)
             schema 
             ast_field.fd_selection_set]]
-    )
+  in
+  match List.filter (fun { item = { d_name = { item } } } -> item = "bsDecoder") ast_field.fd_directives with
+  | [] -> (field_key, parser_expr)
+  | { item = { d_arguments = Some { item = [({ item = "fn" }, { item = Iv_string fn_name; span})] } }} :: _ -> 
+    let loc = map_loc span in
+    (field_key,
+     Ast_helper.Exp.apply ~loc
+       (Ast_helper.Exp.ident ~loc {txt = Longident.parse fn_name; loc = loc})
+       [("", parser_expr)])
+  | { item = { d_arguments = None }; span }:: _ -> raise_error map_loc span "bsDecoder must be given 'fn' argument"
+  | { item = { d_arguments = Some _ }; span }:: _ -> raise_error map_loc span "bsDecoder must be given 'fn' argument"
 
 and unify_selection map_loc schema ty selection = match selection with
   | Field field_span -> unify_field map_loc field_span ty schema
@@ -254,4 +263,3 @@ let unify_document_schema map_loc schema document =
         raise_error map_loc span "This schema does not contain any mutations"
     end
   | _ -> raise @@ Unimplemented "unification with other than singular queries"
-
