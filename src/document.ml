@@ -6,7 +6,7 @@ open Source_pos
 
 let last l = match List.length l with
   | 0 -> None
-  | n -> Some (List.nth l n)
+  | n -> Some (List.nth l (n - 1))
 
 let selection_end_pos s = match s with
   | Ast.Field { span = _, end_pos } -> end_pos
