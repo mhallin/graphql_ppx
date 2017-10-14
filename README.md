@@ -177,8 +177,8 @@ let sendQuery q =>
 
 This implementation is incomplete. It does *not* support:
 
-* Fragments of any kind. This means that interfaces and unions are unusable in
-  practice.
+* Non-inline fragments of any kind.
+* Interfaces.
 * All GraphQL validations. It will *not* validate argument types and do other
   sanity-checking of the queries. The fact that a query compiles does not mean
   that it will pass server-side validation.
@@ -191,9 +191,76 @@ This implementation is incomplete. It does *not* support:
 * Floats, ints, strings, booleans, id are converted into their corresponding native
   OCaml types.
 * Custom scalars are parsed as `Js.Json.t`
-* Arguments with input objects 
+* Arguments with input objects
+* Using `@skip` and `@include` will force non-optional fields to become
+  optional.
+* Unions are converted to polymorphic variants, with exhaustiveness checking.
+  This only works for object types, not for unions containing interfaces.
 
 ## Extra features
+
+By using some directives prefixed `bs`, `graphql_ppx` lets you modify how the
+result of a query is parsed. All these directives will be removed from the query
+at compile time, so your server doesn't have to support them.
+
+### Record conversion
+
+While `Js.t` objects often have their advantages, they also come with some
+limitations. For example, you can't create new objects using the spread (`...`)
+syntax or pattern match on their contents. Since they are not named, they also
+result in quite large type error messages when there are mismatches.
+
+OCaml records, on the other hand, can be pattern matched, created using the
+spread syntax, and give nicer error messages when they mismatch. `graphql_ppx`
+gives you the option to decode a field as a record using the `@bsRecord`
+directive:
+
+```reason
+
+type hero = {
+  name: string,
+  height: number,
+  mass: number
+};
+
+module HeroQuery = [%graphql {|
+{
+  hero @bsRecord {
+    name
+    height
+    mass
+  }
+}
+|}];
+```
+
+Note that the record has to already exist and be in scope for this to work.
+`graphql_ppx` will not _create_ the record. Even though this involves some
+duplication of both names and types, type errors will be generated if there are
+any mismatches.
+
+### Custom field decoders
+
+If you've got a custom scalar, or just want to convert e.g. an integer to a
+string to properly fit a record type (see above), you can use the `@bsDecoder`
+directive to insert a custom function in the decoder:
+
+```reason
+module HeroQuery = [%graphql {|
+{
+  hero {
+    name
+    height @bsDecoder(fn: "string_of_float")
+    mass
+  }
+}
+|}];
+```
+
+In this example, `height` will be converted from a number to a string in the
+result. Using the `fn` argument, you can specify any function literal you want.
+
+### Non-union variant conversion
 
 If you've got an object which in practice behave like a variant - like `signUp`
 above, where you *either* get a user *or* a list of errors - you can add a
@@ -230,9 +297,6 @@ let x =
 This helps with the fairly common pattern for mutations that can fail with
 user-readable errors.
 
-The `@bsVariant` directive is removed from the query at compile-time, so your
-server doesn't have to support it.
-
 ## Future work
 
 Core GraphQL features that need to be implemented:
@@ -240,10 +304,10 @@ Core GraphQL features that need to be implemented:
 - [ ] Inline fragments
 - [ ] Fragment spreads
 - [ ] Selecting on interfaces
-- [ ] Selecting on unions
-- [ ] Input object arguments
+- [X] Selecting on unions
+- [X] Input object arguments
 - [ ] Query validations
-- [ ] Explicit resolvers for custom scalars
+- [X] Explicit resolvers for custom scalars
 
 Nice-to-have features:
 
