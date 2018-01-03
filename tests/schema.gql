@@ -27,6 +27,7 @@ type MutationWithErrorResult {
 
 type SampleResult {
     stringField: String!
+    nested: SampleResult
 }
 
 type SampleError {
