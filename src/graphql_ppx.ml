@@ -105,6 +105,30 @@ let mapper () =
             Location.error ~loc "[%graphql] accepts a string, e.g. [%graphql {| { query |}]"
           ))
       end
+        | {pmod_desc = Pmod_extension (
+            {txt = "graphql.parsetype"; loc}, 
+            PStr [{
+              pstr_desc = 
+                Pstr_eval ({pexp_desc = Pexp_constant (Const_string (type_name, None))}, [])
+            }]
+          )} -> begin
+            let lexer = Gql_lexer.make type_name in
+            match Gql_lexer.consume lexer with
+            | Result.Error e -> raise (Location.Error (
+                Location.error ~loc:(add_loc 1 loc e.span) (fmt_lex_err e.item)
+              ))
+            | Result.Ok tokens -> 
+              let parser = Gql_parser.make tokens in
+              match Document.parse_type parser with
+              | Result.Error e -> raise (Location.Error (
+                  Location.error ~loc:(add_loc 1 loc e.span) (fmt_parse_err e.item)
+                ))
+              | Result.Ok typ -> 
+                Mod.mk ~loc (Pmod_structure [
+                  [%stri exception Graphql_error];
+                  [%stri let parse = fun value -> [%e Standalone_type_decoder.parser_for_type typ schema (add_loc 1 loc) ]]
+                ])
+    end
     | other -> default_mapper.module_expr mapper other
   end in
 
