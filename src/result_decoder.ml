@@ -75,7 +75,8 @@ let rec unify_type as_record map_loc span ty schema (selection_set: selection li
       ] [@metaloc loc]
     | Some ((Interface o) as ty) ->
       unify_selection_set as_record map_loc span schema ty selection_set
-    | Some InputObject obj -> raise_error map_loc span "Can't have fields on input objects"
+    | Some ((InputObject obj) as ty) -> 
+      unify_selection_set as_record map_loc span schema ty selection_set
     | Some Union um -> unify_union map_loc span schema um selection_set
 
 and unify_union map_loc span schema union_meta selection_set =

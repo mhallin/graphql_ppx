@@ -95,13 +95,25 @@ let lookup_field ty name =
   | [x] -> Some x
   | _ -> raise @@ Inconsistent_schema ("Multiple fields named " ^ name)
   in
+  let find_field_input fs = 
+  match List.find_all (fun f -> f.am_name = name) fs with
+  | [] -> None
+  | [x] -> Some {
+    fm_name = x.am_name;
+    fm_description = None;
+    fm_arguments = [];
+    fm_field_type = x.am_arg_type;
+    fm_deprecation_reason = None;
+  }
+  | _ -> raise @@ Inconsistent_schema ("Multiple fields named " ^ name)
+  in
   match ty with
   | Object { om_fields } -> find_field om_fields
   | Interface { im_fields } -> find_field im_fields
   | Scalar { sm_name } -> raise @@ Invalid_type ("Type " ^ sm_name ^ " doesn't have any fields")
   | Enum { em_name } -> raise @@ Invalid_type ("Type " ^ em_name ^ " doesn't have any fields")
   | Union { um_name } -> raise @@ Invalid_type ("Type " ^ um_name ^ " doesn't have any fields")
-  | InputObject { iom_name } -> raise @@ Invalid_type ("Type " ^ iom_name ^ " doesn't have any fields")
+  | InputObject { iom_input_fields } -> find_field_input iom_input_fields
 
 let type_name ty = match ty with
   | Scalar { sm_name } -> sm_name
