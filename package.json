@@ -10,8 +10,8 @@
     "send-introspection-query": "./sendIntrospectionQuery.js"
   },
   "devDependencies": {
-    "bs-platform": "^1.9.2",
-    "graphql": "^0.11.6",
+    "bs-platform": "^2.1.0",
+    "graphql": "^0.12.3",
     "gql-tools": "^0.0.15"
   },
   "scripts": {
