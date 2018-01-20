@@ -89,21 +89,26 @@ let mapper () =
                 let (rec_flag, encoders) = 
                   Variable_encoder.generate_encoders schema loc (add_loc delimLength loc) document in
                 let reprinted_query = Gql_printer.print_document schema document in
+                let make_fn, make_with_variables_fn = Unifier.make_make_fun (add_loc delimLength loc) schema document in
                 Mod.mk ~loc
                   (Pmod_structure [
                       [%stri exception Graphql_error];
                       [%stri let query = [%e Exp.constant ~loc (Const_string (reprinted_query, delim))]];
                       [%stri let parse = fun value -> [%e parse_fn]];
-                      [%stri module type mt = sig type t end];
-                      [%stri type 'a typed = (module mt with type t = 'a)];
-                      [%stri let ret_type (type a) (f: _ -> a) = (let module MT = struct type t = a end in (module MT): a typed)];
-                      [%stri module MT = (val ret_type parse)];
-                      [%stri type t = MT.t];
+
                       {
                         pstr_desc = (Pstr_value (rec_flag, encoders));
                         pstr_loc = loc
                       };
-                      [%stri let make = [%e Unifier.make_make_fun (add_loc delimLength loc) schema document]];
+                      [%stri let make = [%e make_fn]];
+                      [%stri let makeWithVariables = [%e make_with_variables_fn]];
+
+                      (* Some functor magic to determine the return type of parse *)
+                      [%stri module type mt_ret = sig type t end];
+                      [%stri type 'a typed_ret = (module mt_ret with type t = 'a)];
+                      [%stri let ret_type (type a) (f: _ -> a) = (let module MT_Ret = struct type t = a end in (module MT_Ret): a typed_ret)];
+                      [%stri module MT_Ret = (val ret_type parse)];
+                      [%stri type t = MT_Ret.t];
                     ])
           end
         | _ -> raise (Location.Error (

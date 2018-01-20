@@ -35,6 +35,19 @@ let rec make_make_fun map_loc schema document =
               (Pat.var ~loc:name_loc {txt=name.item; loc=name_loc})
               (make_labelled_function tl body))
       in
+      let make_object_function defs body =
+        let rec generate_bindings defs = match defs with
+          | [] -> body
+          | (name, def) :: tl -> let name_loc = map_loc name.span in
+            Ast_helper.Exp.let_ ~loc:name_loc Nonrecursive [
+              Ast_helper.(Vb.mk
+                ~loc:name_loc
+                (Pat.var ~loc:name_loc {txt=name.item; loc=name_loc})
+                [%expr variables##[%e Exp.ident {txt=Longident.Lident name.item; loc=name_loc}]])
+            ] (generate_bindings tl)
+        in
+        [%expr fun variables -> [%e generate_bindings defs]]
+      in
       let rec make_body defs = match defs with
         | (name, def) :: tl -> 
           let parser_ = (
@@ -57,10 +70,16 @@ let rec make_make_fun map_loc schema document =
       let variable_ctor_body = 
         [%expr Js.Json.object_ (Js.Dict.fromList [%e make_body item])] [@metaloc loc]
       in
-      make_labelled_function item (make_make_triple loc variable_ctor_body )
+      (
+        make_labelled_function item (make_make_triple loc variable_ctor_body),
+        make_object_function item (make_make_triple loc variable_ctor_body)
+      )
     end
   | [Operation { item = { o_variable_definitions = None }; span }] -> begin
       let loc = map_loc span in
-      [%expr fun () -> [%e make_make_triple loc [%expr Js.Json.null]]]
+      (
+        [%expr fun () -> [%e make_make_triple loc [%expr Js.Json.null]]],
+        [%expr fun (_: < > Js.t) -> [%e make_make_triple loc [%expr Js.Json.null]]]
+      )
     end
   | _ -> raise @@ Unimplemented "variables on other than singular queries/mutations"
