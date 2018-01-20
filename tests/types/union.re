@@ -14,3 +14,16 @@ module MyQuery = [%graphql
     }
   |}
 ];
+
+module MyNonexhaustiveQuery = [%graphql
+  {|
+    {
+      dogOrHuman {
+        ...on Dog {
+          name
+          barkVolume
+        }
+      }
+    }
+  |}
+];

@@ -1,4 +1,5 @@
 module MyQuery: {
+  type t = Js.t {. listsInput : string};
   let make:
     nullableOfNullable::array (option string)? =>
     nullableOfNonNullable::array string? =>
@@ -7,6 +8,6 @@ module MyQuery: {
     unit =>
     Js.t {
       .
-      parse : Js.Json.t => Js.t {. listsInput : string}, query : string, variables : Js.Json.t
+      parse : Js.Json.t => t, query : string, variables : Js.Json.t
     };
 };

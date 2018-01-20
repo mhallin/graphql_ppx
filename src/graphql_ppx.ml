@@ -94,6 +94,11 @@ let mapper () =
                       [%stri exception Graphql_error];
                       [%stri let query = [%e Exp.constant ~loc (Const_string (reprinted_query, delim))]];
                       [%stri let parse = fun value -> [%e parse_fn]];
+                      [%stri module type mt = sig type t end];
+                      [%stri type 'a typed = (module mt with type t = 'a)];
+                      [%stri let ret_type (type a) (f: _ -> a) = (let module MT = struct type t = a end in (module MT): a typed)];
+                      [%stri module MT = (val ret_type parse)];
+                      [%stri type t = MT.t];
                       {
                         pstr_desc = (Pstr_value (rec_flag, encoders));
                         pstr_loc = loc

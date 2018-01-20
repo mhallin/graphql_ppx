@@ -114,14 +114,27 @@ and unify_union map_loc span schema union_meta selection_set =
       else 
         Ast_helper.Exp.case [%pat? Some _ ] [%expr `Nonexhaustive ]
     in
+    let union_ty = Ast_helper.(
+      Typ.variant ~loc:loc
+        (let case_variants = List.map(fun evm_name -> Rtag (evm_name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = loc }])) covered_cases
+        in if covered_cases = possible_cases
+          then case_variants
+          else Rtag ("Nonexhaustive", [], true, []) :: case_variants)
+        Closed None)
+    in
     let decoder = Ast_helper.Exp.match_ ~loc typename_decode (List.append (List.map generate_case fragments) [fail_case; none_case]) in
     [%expr match Js.Json.decodeObject value with
       | None -> raise Graphql_error
-      | Some unionValue -> [%e decoder]] [@metaloc loc]
+      | Some unionValue -> ([%e decoder]: [%t union_ty])] [@metaloc loc]
 
 
 and unify_variant map_loc span ty schema selection_set =
   let loc = map_loc span in
+  let selection_name = function
+    | Field { item } -> String.capitalize (some_or item.fd_alias item.fd_name).item
+    | FragmentSpread { span } -> raise_error map_loc span "Variant selections can only contain fields"
+    | InlineFragment { span } -> raise_error map_loc span "Variant selections can only contain fields"
+  in
   let rec match_loop ty selection_set = match selection_set with
     | [] -> [%expr raise Graphql_error] [@metaloc loc]
     | Field { item; span } :: tl -> begin
@@ -164,11 +177,16 @@ and unify_variant map_loc span ty schema selection_set =
     | Some InputObject _ -> raise_error map_loc span "Variant fields can only be applied to object types"
     | Some ((Object _) as ty) ->
       match selection_set with
+      | None -> raise_error map_loc span "Variant fields need a selection set"
       | Some { item } ->
+        let matcher = match_loop ty item in
+        let variant_type = Ast_helper.(
+          Typ.variant ~loc:loc
+            (List.map(fun s -> Rtag (selection_name s, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = loc }])) item)
+            Closed None) in
         [%expr match Js.Json.decodeObject value with
           | None -> raise Graphql_error
-          | Some value -> [%e match_loop ty item]] [@metaloc loc]
-      | None -> raise_error map_loc span "Variant fields need a selection set"
+          | Some value -> ([%e matcher]: [%t variant_type])] [@metaloc loc]
 
 and unify_field map_loc field_span ty schema =
   let ast_field = field_span.item in

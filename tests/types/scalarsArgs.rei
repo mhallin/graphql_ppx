@@ -1,4 +1,5 @@
 module MyQuery: {
+  type t = Js.t {. scalarsInput : string};
   let make:
     nullableString::string? =>
     string::string =>
@@ -13,6 +14,6 @@ module MyQuery: {
     unit =>
     Js.t {
       .
-      parse : Js.Json.t => Js.t {. scalarsInput : string}, query : string, variables : Js.Json.t
+      parse : Js.Json.t => t, query : string, variables : Js.Json.t
     };
 };
