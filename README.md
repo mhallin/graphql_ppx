@@ -297,6 +297,45 @@ let x =
 This helps with the fairly common pattern for mutations that can fail with
 user-readable errors.
 
+## Alternative `Query.make` syntax
+
+When you define a query with variables, the `make` function will take
+corresponding labelled arguments. This is convenient when constructing and
+sending the queries yourself, but might be problematic when trying to abstract
+over multiple queries.
+
+For this reason, another function called `makeWithVariables` is _also_
+generated. This function takes a single `Js.t` object containing all variables.
+
+```reason
+
+module MyQuery = [%graphql {|
+  mutation ($username: String!, $password: String!) {
+    ...
+  }
+|}];
+
+/* You can either use `make` with labelled arguments: */
+let query = MyQuery.make username::"testUser" password::"supersecret" ();
+
+/* Or, you can use `makeWithVariables`: */
+let query = MyQuery.makeWithVariables { "username": "testUser", "password": "supersecret" };
+```
+
+## Getting the type of the parsed value
+
+If you want to get the type of the parsed and decoded value - useful in places
+where you can't use OCaml's type inference - use the `t` type of the query
+module:
+
+```reason
+module MyQuery = [%graphql {| { hero { name height }} |}];
+
+
+/* This is something like Js.t({ . hero: Js.t({ name: string, weight: float }) }) */
+type resultType = MyQuery.t;
+```
+
 ## Future work
 
 Core GraphQL features that need to be implemented:
@@ -309,17 +348,32 @@ Core GraphQL features that need to be implemented:
 - [ ] Query validations
 - [X] Explicit resolvers for custom scalars
 
-Nice-to-have features:
 
-- Using external records instead of objects, useful if you've already defined a
-  record that you want to use in the rest of the codebase:
-  ```graphql
-  {
-    hero @bsRecord(name: "Model.hero") {
-      name
-      homePlanet
-    }
-  }
-  ```
+## Experimental: `graphql-tag` replacement
 
-  The same could probably be built for GraphQL enums.
+To simplify integration with e.g. Apollo, this PPX can write the query AST
+instead of the raw source, in a way that _should_ be compatible with how
+[graphql-tag](https://github.com/apollographql/graphql-tag) works.
+
+To enable this, change your `bsconfig.json` to:
+
+```json
+{
+    "ppx-flags": [
+        "graphql_ppx/ppx\\ -ast-out"
+    ]
+}
+```
+
+Now, the `query` field will be a `Js.Json.t` structure instead of a string,
+ready to be sent to Apollo.
+
+```reason
+module HeroQuery = [%graphql {| { hero { name } } |}];
+
+/* Construct a "packaged" query; HeroQuery takes no arguments: */
+let heroQuery = HeroQuery.make ();
+
+/* This is no longer a string, but rather an object structure */
+let query = heroQuery##query;
+```
