@@ -1,0 +1,14 @@
+{
+    "name": "graphql_ppx_test",
+    "sources": [
+        "__tests__"
+    ],
+    "ppx-flags": [
+        "../graphql_ppx.native\\ -ast-out"
+    ],
+    "bs-dependencies": [
+        "@glennsl/bs-jest"
+    ],
+    "bsc-flags": [ "-bs-super-errors" ],
+    "refmt": 3
+}

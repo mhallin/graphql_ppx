@@ -53,7 +53,7 @@ let rec find_schema_file dir =
 
 exception Schema_file_not_found
 
-let mapper () =
+let mapper argv =
   let open Ast_mapper in
   let open Ast_helper in
   let open Parsetree in
@@ -63,6 +63,11 @@ let mapper () =
   let schema = match find_schema_file (Sys.getcwd ()) with
     | Some filename -> Read_schema.read_schema_file filename
     | None -> raise Schema_file_not_found
+  in
+
+  let is_ast_output = match List.find ((=) "-ast-out") argv with
+    | _ -> true
+    | exception Not_found -> false
   in
 
   let module_expr mapper mexpr = begin
@@ -93,7 +98,9 @@ let mapper () =
                 Mod.mk ~loc
                   (Pmod_structure [
                       [%stri exception Graphql_error];
-                      [%stri let query = [%e Exp.constant ~loc (Const_string (reprinted_query, delim))]];
+                      [%stri let query = [%e if is_ast_output
+                        then Js_serializer.serialize_document query document
+                        else Exp.constant ~loc (Const_string (reprinted_query, delim))]];
                       [%stri let parse = fun value -> [%e parse_fn]];
 
                       {
@@ -120,4 +127,4 @@ let mapper () =
 
   To_current.copy_mapper { default_mapper with module_expr }
 
-let () = Compiler_libs.Ast_mapper.register "graphql" (fun _argv -> mapper ())
+let () = Compiler_libs.Ast_mapper.register "graphql" (fun argv -> mapper argv)
