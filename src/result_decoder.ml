@@ -25,7 +25,7 @@ let rec unify_type as_record map_loc span ty schema (selection_set: selection li
   | Ntr_list t ->
     [%expr match Js.Json.decodeArray value with
       | None -> raise Graphql_error
-      | Some value -> Array.map (fun value -> [%e unify_type as_record map_loc span t schema selection_set]) value
+      | Some value -> Js.Array.map (fun value -> [%e unify_type as_record map_loc span t schema selection_set]) value
     ] [@metaloc loc]
   | Ntr_named n -> match lookup_type schema n with
     | None -> raise_error map_loc span ("Could not find type " ^ n)
@@ -166,7 +166,7 @@ and unify_variant map_loc span ty schema selection_set =
   | Ntr_list t ->
     [%expr match Js.Json.decodeArray value with
       | None -> raise Graphql_error
-      | Some value -> Array.map (fun value -> [%e unify_variant map_loc span t schema selection_set]) value
+      | Some value -> Js.Array.map (fun value -> [%e unify_variant map_loc span t schema selection_set]) value
     ] [@metaloc loc]
   | Ntr_named n -> match lookup_type schema n with
     | None -> raise_error map_loc span ("Could not find type " ^ n)

@@ -341,7 +341,7 @@ let array_encoder loc =
         make_expression (
           apply "Js.Json.array" (
             make_expression (
-              apply_multi "Array.map"
+              apply_multi "Js.Array.map"
                 [
                   make_value_expression "encoder";
                   make_value_expression "value"
