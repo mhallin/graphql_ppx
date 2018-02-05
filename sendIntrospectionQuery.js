@@ -5,7 +5,7 @@ var argv = require("yargs")
   .required(1, "URL is required")
   .option("H", {
     alias: "headers",
-    describe: "Additional Headers to send with introspection request",
+    describe: "Additional Headers to send with introspection query",
     type: "array",
     coerce: arg => {
       let additionalHeaders = {};
