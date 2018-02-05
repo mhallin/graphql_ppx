@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 var argv = require("yargs")
-  .usage('Usage: $0 <url>  [--header "key:value"]')
+  .usage('Usage: $0 <url>  [--headers "key:value"]')
   .command("url", "URL of the GraphQL endpoint", { alias: "url" })
   .required(1, "URL is required")
   .option("H", {
@@ -23,7 +23,8 @@ var argv = require("yargs")
   })
   .help("?")
   .alias("?", "help")
-  .example("$0 https://example.com/graphql", "Get GraphQL Schema").argv;
+  .example("$0 https://example.com/graphql", "Get GraphQL Schema")
+  .example(`$0 https://example.com/graphql --headers "Authorisation: <token>"`, "Get GraphQL Schema with Authorisation header").argv;
 
 var request = require("request");
 var fs = require("fs");
