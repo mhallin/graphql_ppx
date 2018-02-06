@@ -1,0 +1,51 @@
+platform:
+  - x64
+
+environment:
+  matrix:
+    - FORK_USER: ocaml
+      FORK_BRANCH: master
+      CYG_ROOT: C:\cygwin64
+      OPAM_SWITCH: 4.02.3+mingw64c
+      PACKAGE: graphql_ppx
+      OPAMYES: 1
+      INSTALL: false
+      REVDEPS: false
+      IS_GRAPHQL_PPX_CI: true
+      TARGET_PLATFORM: win-x64
+
+    - FORK_USER: ocaml
+      FORK_BRANCH: master
+      CYG_ROOT: C:\cygwin
+      OPAM_SWITCH: 4.02.3+mingw32c
+      PACKAGE: graphql_ppx
+      OPAMYES: 1
+      INSTALL: false
+      REVDEPS: false
+      IS_GRAPHQL_PPX_CI: true
+      TARGET_PLATFORM: win-x86
+
+install:
+  - ps: Install-Product node LTS
+  - ps: iex ((new-object net.webclient).DownloadString("https://raw.githubusercontent.com/$env:FORK_USER/ocaml-ci-scripts/$env:FORK_BRANCH/appveyor-install.ps1"))
+  - yarn
+
+build_script:
+  - call %CYG_ROOT%\bin\bash.exe -l %APPVEYOR_BUILD_FOLDER%\appveyor-opam.sh
+  - call %CYG_ROOT%\bin\bash.exe -l -c "cd /cygdrive/c/projects/graphql-ppx && make build"
+
+test_script:
+  - node node_modules/gql-tools/cli/gqlschema.js -o tests/graphql_schema.json tests/schema.gql
+  - call %CYG_ROOT%\bin\bash.exe -l -c "cd /cygdrive/c/projects/graphql-ppx && make test"
+  - copy graphql_ppx.native graphql_ppx-%TARGET_PLATFORM%.exe
+
+artifacts:
+  - path: graphql_ppx-*.exe
+
+deploy:
+  provider: GitHub
+  auth_token:
+    secure: cNoylUr8IbJuXONnyQFAUTNzU0GsZkq4mnAhvyzqPgbtesQSJM0rCJGDPhLjMHo+
+  artifact: /graphql_ppx-.*\.exe/
+  on:
+    appveyor_repo_tag: true

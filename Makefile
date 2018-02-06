@@ -9,7 +9,10 @@ build:
 		-package yojson \
 		-package ppx_tools.metaquot \
 		-I src \
+		$(OCAMLBUILDFLAGS) \
 		graphql_ppx.native
+	rm graphql_ppx.native
+	cp _build/src/graphql_ppx.native .
 
 test: build tests/graphql_schema.json
 	(cd tests && \

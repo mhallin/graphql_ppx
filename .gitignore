@@ -1,4 +1,5 @@
 /_build
+/bin
 /graphql_ppx.native
 /node_modules
 /tests/lib

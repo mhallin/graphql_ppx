@@ -1,20 +1,72 @@
-language: node_js
+language: generic
 
-node_js:
-  - "8"
+os:
+  - linux
+  - osx
+
+addons:
+  apt:
+    sources:
+      - avsm
+    packages:
+      - ocaml
+      - ocaml-native-compilers
+      - camlp4-extra
+      - opam
 
 before_install:
-  - sudo add-apt-repository ppa:avsm/ppa -y
-  - sudo apt-get -qq update
-  - sudo apt-get install -y ocaml ocaml-native-compilers camlp4-extra opam
-  - OPAMYES=1 opam init
+  - bash -e ci/travis_before_install.sh
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export TARGET_NAME=darwin-x64; export OCAMLBUILDFLAGS=""; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export TARGET_NAME=linux-x64; export OCAMLBUILDFLAGS="-lflags '-ccopt -static'"; fi
   - eval `opam config env`
 
 before_script:
-  - ln -fs graphql_ppx.native ppx
-  - yarn
+  - IS_GRAPHQL_PPX_CI=true yarn
+  - OPAMYES=1 opam pin add graphql_ppx . -n
+  - OPAMYES=1 opam install graphql_ppx --deps-only
 
 script:
-  - OPAMYES=1 opam pin add graphql_ppx .
-  - make
-  - make test
+  - make "OCAMLBUILDFLAGS=$OCAMLBUILDFLAGS"
+  - make test "OCAMLBUILDFLAGS=$OCAMLBUILDFLAGS"
+  - cp _build/src/graphql_ppx.native graphql_ppx-$TARGET_NAME.exe
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  file_glob: true
+  file: graphql_ppx-*.exe
+  api_key:
+    secure: "xFRAioN2zdN/iDNFNTzjTp+bRPBxpdokJRYCWo4sA4FExvSrf5pibHGjapmESTdWkSziNHVWDqQr8oWeN93sGEuPn/faKhhqtn8ikeqMpB9PVIc/1X9+ScIWD9meMG8hPEDJsD5W/dgsJs75M4P9bmVDKvQ4X96rSyl0r5RRRFqTHc4Irc1Io5XoLSftuA++DVFvDUAlrfOHguGRK1LtMcDX7ei8CTbiTrYshn6LabeqV12nVxVYCqKQROqQ/RQCFtRvWKe6z98Zp1roOafX4X4k9Q0w5BUx6x7hniOQoaQZpyZukrOlAqwJsURxiH+MrwJPv52steFz2CXPTSPY6LTHlmc39yhULmnkwMIFjJGQJQbgmb+7XWMfZZV5he7OarnqiCVJRIoTvOMbPfKEhswns4mf1NrEsSBoWJMGAot+q8/Gx5eMZaPRnr8SNYL5e3TJmu7g/J/0nJb7gZHZieljiZotwadS1AA2JUoqhPnkuZpVK9xMXOVbzOUuqhOF3P/fbT2FTpMjCtUPxpf0A7nBC92kb5uVKw/WKQVZUe3D1fjh/a8dzUPHyQ9a+7wnfOPId36GM0tFGZhvpuFgt/+lCh7d1MJFOvn5Y3nPIqUHJT6pWvLckBCY//lUkVF7d5ddXrEXNywA62ZOYojPK5qYQIGyWNeE9x8kpiVaYfs="
+  on:
+    tags: true
+
+
+jobs:
+  include:
+    - stage: Wait for Windows binaries to become available
+      addons:
+        apt:
+          sources: []
+          packages: []
+      before_install: skip
+      before_script: skip
+      deploy: []
+      script: bash -e ci/wait_for_builds.sh
+
+    - stage: Deploy to npmjs
+      addons:
+        apt:
+          sources: []
+          packages: []
+      before_install: skip
+      before_script: skip
+      script:
+        - bash -e ci/download_binaries.sh
+      deploy:
+        provider: npm
+        email: mhallin@fastmail.com
+        api_key:
+          secure: "WrVb4p1hoobkvcL5B0Tx+6H/+6wNqJbHc5/BfsXCLautjk4kEjgWFfpNOGKtww+vXm2O/huzmkJgoieRUXFmTxD/enC0jWthv5JCCtGPtBNjvPGv000M0PNoamcy9Cmmn9NbJ8oAjCp8vDH9TLnielP7sPnUtqiBbi0igzcQu7UJoXgN+oCcs0d+L4rGHDD+EyJ5UugcXWefY9U/vWzec5fcIjazATMjl1yIGn9Mq4ldFp/ekzsOMXf5rlVeN0UZJ8tsAMY+tdMruZgmqC/h4f/nVeVxXaGqF/2AWlfdD/YGIN8HABK1Z6yHp1JHiG4BbY6r3OIygiva2FMXVS5MOpFIpfgr65LvMvV01M9KrQrTSF44cCJBmtYJdmDjvgvBSAY4Ifzl1DpD96W9SW5pRXXIPEGpn1ByTJYZiXs1I4T0T6hEWSNIHMX0TASR/bhyvC38MfoSd9/RmRH89avN4v+5jeSaIJPwVHxzvieF9iD+i+sFUMLDcEbcLRDhhIuEfsgzEW4lf0iVJC2/EvissQu64nYWAv0dKr1I/K+ahn9uWnrWBxFGbLIJydDQieLGtu1sfjfEuroLH+no6mpHeGAQQ4GYDJ38WtDxzmAOn5HolotKMsLG3GgYiNrmyoWA55LRRiWcEoYj4Spe/nAd/dCjjms82SezNK9a7/D2VJI="
+        on:
+          tags: true
+        skip_cleanup: true

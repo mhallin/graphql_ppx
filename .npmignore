@@ -1,10 +1,13 @@
 /_build
+/.vscode
 /graphql_ppx.native
 /node_modules
 /tests/lib
+/tests_apollo/lib
 /lib
 /ppx
 /graphql_ppx.*
 /doc
 /lib
+/ci
 /src

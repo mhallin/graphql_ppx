@@ -1,6 +1,6 @@
 {
   "name": "graphql_ppx",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "description": "GraphQL PPX rewriter for Bucklescript/ReasonML",
   "main": "index.js",
   "repository": "https://github.com/mhallin/graphql_ppx",
@@ -9,16 +9,15 @@
   "bin": {
     "send-introspection-query": "./sendIntrospectionQuery.js"
   },
+  "scripts": {
+    "postinstall": "node copyPlatformBinaryInPlace.js"
+  },
   "devDependencies": {
     "@glennsl/bs-jest": "^0.3.2",
     "bs-platform": "^2.1.0",
     "gql-tools": "^0.0.15",
     "graphql": "^0.12.3",
     "graphql-tag": "^2.6.1"
-  },
-  "scripts": {
-    "preinstall": "if [ ! -x \"$(opam config var graphql_ppx:bin)/graphql_ppx.native\" ]; then echo 'You must install graphql_ppx through opam before using this package. Run `opam install graphql_ppx`'; fi",
-    "postinstall": "if [ ! -e ./ppx ]; then ln -fs \"$(opam config var graphql_ppx:bin)/graphql_ppx.native\" ./ppx; fi"
   },
   "dependencies": {
     "request": "^2.82.0",

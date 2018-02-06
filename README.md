@@ -18,16 +18,9 @@ Bucklescript standard library.
 ## Installation
 
 Assuming that you've already got a Bucklescript project set up, installing this
-syntax extension consists of three steps:
+syntax extension consists of two steps:
 
-First, install the [OPAM](https://opam.ocaml.org) package to download and build
-the transform itself:
-
-```sh
-opam install graphql_ppx
-```
-
-Next, add this package as a dependency to your `package.json`:
+First, add this package as a dependency to your `package.json`:
 
 ```sh
 yarn add --dev graphql_ppx
@@ -35,7 +28,7 @@ yarn add --dev graphql_ppx
 npm install --saveDev graphql_ppx
 ```
 
-Finally, add the PPX to your `bsconfig.json`:
+Second, add the PPX to your `bsconfig.json`:
 
 ```json
 {
@@ -47,6 +40,11 @@ Finally, add the PPX to your `bsconfig.json`:
 
 **Note**: If you want to use this, make sure to read the limitations at the
 bottom of this readme first!
+
+### Upgrading from older versions
+
+The OPAM package `graphql_ppx` is no longer needed. If you've used an earlier
+version of this PPX you can safely remove this package.
 
 ## Examples
 
@@ -377,3 +375,9 @@ let heroQuery = HeroQuery.make ();
 /* This is no longer a string, but rather an object structure */
 let query = heroQuery##query;
 ```
+
+## Building manually on unsupported platforms
+
+graphql_ppx supports 64 bit Linux, Windows, and macOS, as well as 32 bit
+Windows out of the box. If you're on any other platform, please open an issue
+on this repository so we can support it.
