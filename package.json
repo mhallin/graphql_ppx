@@ -21,6 +21,7 @@
     "postinstall": "if [ ! -e ./ppx ]; then ln -fs \"$(opam config var graphql_ppx:bin)/graphql_ppx.native\" ./ppx; fi"
   },
   "dependencies": {
-    "request": "^2.82.0"
+    "request": "^2.82.0",
+    "yargs": "^11.0.0"
   }
 }
