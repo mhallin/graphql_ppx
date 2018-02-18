@@ -66,7 +66,7 @@ let rec ser_value = function
       ("value", Js.Json.string([%e Ast_helper.Exp.constant (Asttypes.Const_string (e, None))]));
     |]))]
   | { item = Iv_variable v; span } -> [%expr Js.Json.object_(Js.Dict.fromArray([|
-      ("kind", Js.Json.string("VariableNode"));
+      ("kind", Js.Json.string("Variable"));
       ("name", [%e ser_name { item = v; span }])
     |]))]
   | { item = Iv_list l } -> [%expr Js.Json.object_(Js.Dict.fromArray([|
@@ -85,7 +85,7 @@ and ser_object_field (k, v) = [%expr Js.Json.object_(Js.Dict.fromArray([|
   |]))]
 
 let ser_argument (name, value) = [%expr Js.Json.object_(Js.Dict.fromArray([|
-    ("kind", Js.Json.string("ArgumentNode"));
+    ("kind", Js.Json.string("Argument"));
     ("name", [%e ser_name name]);
     ("value", [%e ser_value value]);
   |]))]
@@ -97,7 +97,7 @@ let ser_variable_definition (name, def) =
   [%expr Js.Json.object_(Js.Dict.fromArray([|
     ("kind", Js.Json.string("VariableDefinition"));
     ("variable", Js.Json.object_(Js.Dict.fromArray([|
-      ("kind", Js.Json.string("VariableNode"));
+      ("kind", Js.Json.string("Variable"));
       ("name", [%e ser_name name]);
     |])));
     ("type", [%e ser_type def.vd_type]);
