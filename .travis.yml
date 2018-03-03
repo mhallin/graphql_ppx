@@ -28,7 +28,7 @@ before_script:
 script:
   - make "OCAMLBUILDFLAGS=$OCAMLBUILDFLAGS"
   - make test "OCAMLBUILDFLAGS=$OCAMLBUILDFLAGS"
-  - cp _build/src/graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
+  - mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
 
 deploy:
   provider: releases

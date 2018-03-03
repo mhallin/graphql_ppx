@@ -1,6 +1,6 @@
 /_build
 /bin
-/graphql_ppx.exe
+/graphql_ppx*.exe
 /node_modules
 /tests/lib
 /tests/graphql_schema.json
