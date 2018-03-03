@@ -4,7 +4,7 @@
         "types"
     ],
     "ppx-flags": [
-        "../graphql_ppx.native"
+        "../graphql_ppx.exe"
     ],
     "bsc-flags": [ "-bs-super-errors" ]
 }

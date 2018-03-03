@@ -37,7 +37,7 @@ build_script:
 test_script:
   - node node_modules/gql-tools/cli/gqlschema.js -o tests/graphql_schema.json tests/schema.gql
   - call %CYG_ROOT%\bin\bash.exe -l -c "cd /cygdrive/c/projects/graphql-ppx && make test"
-  - copy graphql_ppx.native graphql_ppx-%TARGET_PLATFORM%.exe
+  - copy graphql_ppx.exe graphql_ppx-%TARGET_PLATFORM%.exe
 
 artifacts:
   - path: graphql_ppx-*.exe

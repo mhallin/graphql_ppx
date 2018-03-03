@@ -1,6 +1,6 @@
 /_build
 /.vscode
-/graphql_ppx.native
+/graphql_ppx.exe
 /node_modules
 /tests/lib
 /tests_apollo/lib

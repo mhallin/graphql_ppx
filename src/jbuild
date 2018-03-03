@@ -1,0 +1,9 @@
+(jbuild_version 1)
+
+(executable
+ ((name graphql_ppx)
+  (libraries (ocaml-migrate-parsetree
+              result
+              yojson
+              ppx_tools_versioned.metaquot_402))
+  (preprocess (pps (ppx_tools_versioned.metaquot_402)))))

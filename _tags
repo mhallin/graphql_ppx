@@ -1,4 +1,0 @@
-<tests/*.ml>: ppx(./graphql_ppx.native)
-<node_modules>: -traverse
-<tests>: -traverse
-<tests_apollo>: -traverse

@@ -11,14 +11,11 @@ tags: ["bucklescript" "reasonml" "ppx" "graphql"]
 build: [
   [make "build"]
 ]
-install: [make "install"]
-remove: [make "uninstall"]
 available: [ocaml-version = "4.02.3"]
 depends: [
-  "ocamlfind" {build}
-  "ocamlbuild" {build}
   "ocaml-migrate-parsetree" {build}
   "result" {build}
   "yojson" {build}
-  "ppx_tools" {build}
+  "ppx_tools_versioned" {build}
+  "jbuilder" {build}
 ]

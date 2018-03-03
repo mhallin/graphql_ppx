@@ -1,18 +1,8 @@
-PREFIX?=$(shell opam config var prefix)
-OCAMLFIND_IGNORE_DUPS_IN = $(shell ocamlfind query compiler-libs)
-export OCAMLFIND_IGNORE_DUPS_IN
+JBUILDER?=jbuilder
 
 build:
-	ocamlbuild -use-ocamlfind \
-		-package ocaml-migrate-parsetree \
-		-package result \
-		-package yojson \
-		-package ppx_tools.metaquot \
-		-I src \
-		$(OCAMLBUILDFLAGS) \
-		graphql_ppx.native
-	rm graphql_ppx.native
-	cp _build/src/graphql_ppx.native .
+	$(JBUILDER) build @graphql_ppx
+	cp _build/default/src/graphql_ppx.exe .
 
 test: build tests/graphql_schema.json
 	(cd tests && \
@@ -22,13 +12,8 @@ test: build tests/graphql_schema.json
 tests/graphql_schema.json: tests/schema.gql
 	node ./node_modules/gql-tools/cli/gqlschema.js -o tests/graphql_schema.json tests/schema.gql
 
-install: build
-	@opam-installer --prefix=$(PREFIX) graphql_ppx.install
-
-uninstall:
-	@opam-installer -u --prefix=$(PREFIX) graphql_ppx.install
-
 clean:
-	rm -rf _build graphql_ppx.native tests/lib
+	$(JBUILDER) clean
+	rm -rf _build graphql_ppx.exe tests/lib
 
 .PHONY: build test clean
