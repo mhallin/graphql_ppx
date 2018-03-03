@@ -4,6 +4,8 @@
 > are probably a lot of bugs.
 
 [![Build Status](https://travis-ci.org/mhallin/graphql_ppx.svg?branch=master)](https://travis-ci.org/mhallin/graphql_ppx)
+[![Build Status](https://ci.appveyor.com/api/projects/status/mqlrgovk67bcc9a9/branch/master?svg=true)](https://ci.appveyor.com/project/mhallin/graphql-ppx)
+![npm](https://img.shields.io/npm/v/graphql_ppx.svg)
 
 This library lets you construct type-safe and validated queries at compile time,
 and generates response validation code for you. If you're writing a
