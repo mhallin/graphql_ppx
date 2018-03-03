@@ -1,4 +1,4 @@
-open Ast
+open Graphql_ast
 open Source_pos
 open Schema
 

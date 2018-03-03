@@ -6,13 +6,13 @@ let map_ok f r = match r with
   | Error e -> Error e
 
 type parser = {
-  mutable tokens: Gql_lexer.token spanning list;
+  mutable tokens: Graphql_lexer.token spanning list;
 }
 
 type parseError =
-  | Unexpected_token of Gql_lexer.token
+  | Unexpected_token of Graphql_lexer.token
   | Unexpected_end_of_file
-  | Lexer_error of Gql_lexer.lexerError
+  | Lexer_error of Graphql_lexer.lexerError
 
 let make tokens = { tokens = tokens }
 
@@ -33,15 +33,15 @@ let expect parser token =
 
 let expect_name parser =
   match next parser with
-  | Ok ({ item = Gql_lexer.Name name } as span) -> Ok (replace span name)
-  | Ok ({ item = Gql_lexer.End_of_file } as span) -> Error (replace span Unexpected_end_of_file)
+  | Ok ({ item = Graphql_lexer.Name name } as span) -> Ok (replace span name)
+  | Ok ({ item = Graphql_lexer.End_of_file } as span) -> Error (replace span Unexpected_end_of_file)
   | Ok span -> Error (map (fun t -> Unexpected_token t) span)
   | Error e -> Error e
 
 let skip parser token =
   match peek parser with
   | span when span.item == token -> map_ok (fun x -> Some x) (next parser)
-  | span when span.item == Gql_lexer.End_of_file -> Error (zero_width (start_pos span) Unexpected_end_of_file)
+  | span when span.item == Graphql_lexer.End_of_file -> Error (zero_width (start_pos span) Unexpected_end_of_file)
   | _ -> Ok None
 
 let delimited_list parser opening sub_parser closing =

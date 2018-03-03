@@ -25,7 +25,7 @@ let add_loc delimLength base span =
   }
 
 let fmt_lex_err err =
-  let open Gql_lexer in
+  let open Graphql_lexer in
   match err with
   | Unknown_character ch -> Printf.sprintf "Unknown character %c" ch
   | Unexpected_character ch -> Printf.sprintf "Unexpected character %c" ch
@@ -36,9 +36,9 @@ let fmt_lex_err err =
   | Invalid_number -> Printf.sprintf "Invalid number"
 
 let fmt_parse_err err =
-  let open Gql_parser in
+  let open Graphql_parser in
   match err with
-  | Unexpected_token t -> Printf.sprintf "Unexpected token %s" (Gql_lexer.string_of_token t)
+  | Unexpected_token t -> Printf.sprintf "Unexpected token %s" (Graphql_lexer.string_of_token t)
   | Unexpected_end_of_file -> "Unexpected end of query"
   | Lexer_error err -> fmt_lex_err err
 
@@ -77,15 +77,15 @@ let mapper argv =
         | PStr [{ pstr_desc = Pstr_eval ({
             pexp_loc = loc; 
             pexp_desc = Pexp_constant (Const_string (query, delim))}, _)}] -> begin
-            let lexer = Gql_lexer.make query in
+            let lexer = Graphql_lexer.make query in
             let delimLength = match delim with | Some s -> 2 + String.length s | None -> 1 in
-            match Gql_lexer.consume lexer with
+            match Graphql_lexer.consume lexer with
             | Result.Error e -> raise (Location.Error (
                 Location.error ~loc:(add_loc delimLength loc e.span) (fmt_lex_err e.item)
               ))
             | Result.Ok tokens -> 
-              let parser = Gql_parser.make tokens in
-              match Document.parse_document parser with
+              let parser = Graphql_parser.make tokens in
+              match Graphql_parser_document.parse_document parser with
               | Result.Error e -> raise (Location.Error (
                   Location.error ~loc:(add_loc delimLength loc e.span) (fmt_parse_err e.item)
                 ))
@@ -93,13 +93,13 @@ let mapper argv =
                 let parse_fn = Result_decoder.unify_document_schema (add_loc delimLength loc) schema document in
                 let (rec_flag, encoders) = 
                   Variable_encoder.generate_encoders schema loc (add_loc delimLength loc) document in
-                let reprinted_query = Gql_printer.print_document schema document in
+                let reprinted_query = Graphql_printer.print_document schema document in
                 let make_fn, make_with_variables_fn = Unifier.make_make_fun (add_loc delimLength loc) schema document in
                 Mod.mk ~loc
                   (Pmod_structure [
                       [%stri exception Graphql_error];
                       [%stri let query = [%e if is_ast_output
-                        then Js_serializer.serialize_document query document
+                        then Ast_serializer_apollo.serialize_document query document
                         else Exp.constant ~loc (Const_string (reprinted_query, delim))]];
                       [%stri let parse = fun value -> [%e parse_fn]];
 

@@ -1,7 +1,7 @@
 open Result
-open Ast
+open Graphql_ast
 
-open Gql_parser
+open Graphql_parser
 open Source_pos
 
 let last l = match List.length l with
@@ -9,25 +9,25 @@ let last l = match List.length l with
   | n -> Some (List.nth l (n - 1))
 
 let selection_end_pos s = match s with
-  | Ast.Field { span = _, end_pos } -> end_pos
-  | Ast.FragmentSpread { span = _, end_pos } -> end_pos
-  | Ast.InlineFragment { span = _, end_pos } -> end_pos
+  | Field { span = _, end_pos } -> end_pos
+  | FragmentSpread { span = _, end_pos } -> end_pos
+  | InlineFragment { span = _, end_pos } -> end_pos
 
 let parse_argument parser = 
   match expect_name parser with
   | Error e -> Error e
-  | Ok name -> match expect parser Gql_lexer.Colon with
+  | Ok name -> match expect parser Graphql_lexer.Colon with
     | Error e -> Error e
-    | Ok _ -> match Value.parse_value_literal false parser with
+    | Ok _ -> match Graphql_parser_value.parse_value_literal false parser with
       | Error e -> Error e
       | Ok value -> Ok (name, value)
 
 let parse_arguments parser = match peek parser with
-  | { item = Gql_lexer.Paren_open } -> map_ok (fun args -> Some args)
-    (delimited_nonempty_list parser Gql_lexer.Paren_open parse_argument Gql_lexer.Paren_close)
+  | { item = Graphql_lexer.Paren_open } -> map_ok (fun args -> Some args)
+    (delimited_nonempty_list parser Graphql_lexer.Paren_open parse_argument Graphql_lexer.Paren_close)
   | _ -> Ok None
 
-let parse_directive parser = match expect parser Gql_lexer.At with
+let parse_directive parser = match expect parser Graphql_lexer.At with
   | Error e -> Error e
   | Ok { span = start_pos, _ } -> match expect_name parser with
     | Error e -> Error e
@@ -44,9 +44,9 @@ let parse_directive parser = match expect parser Gql_lexer.At with
       )
 
 let parse_directives parser = match peek parser with
-  | { item = Gql_lexer.At } -> 
+  | { item = Graphql_lexer.At } -> 
     let rec scanner acc = match peek parser with
-      | { item = Gql_lexer.At } -> begin match parse_directive parser with
+      | { item = Graphql_lexer.At } -> begin match parse_directive parser with
         | Error e -> Error e
         | Ok directive -> scanner (directive :: acc)
         end
@@ -55,14 +55,14 @@ let parse_directives parser = match peek parser with
     scanner []
   | span -> Ok []
 
-let rec parse_type parser = match skip parser Gql_lexer.Bracket_open with
+let rec parse_type parser = match skip parser Graphql_lexer.Bracket_open with
   | Error e -> Error e
   | Ok (Some { span = start_pos, _ }) -> begin match parse_type parser with
     | Error e -> Error e
-    | Ok inner_type -> match expect parser Gql_lexer.Bracket_close with
+    | Ok inner_type -> match expect parser Graphql_lexer.Bracket_close with
       | Error e -> Error e
       | Ok { span = _, (end_pos as bracket_end_pos) } -> match peek parser with
-        | { item = Gql_lexer.Exclamation_mark; span = _, end_pos } ->
+        | { item = Graphql_lexer.Exclamation_mark; span = _, end_pos } ->
           let _ = next parser in
           Ok (start_end start_pos end_pos (Tr_non_null_list inner_type))
         | _ -> Ok (start_end start_pos bracket_end_pos (Tr_list inner_type))
@@ -70,22 +70,22 @@ let rec parse_type parser = match skip parser Gql_lexer.Bracket_open with
   | Ok None -> match expect_name parser with
     | Error e -> Error e
     | Ok name_span -> match peek parser with
-      | { item = Gql_lexer.Exclamation_mark; span = _, end_pos } ->
+      | { item = Graphql_lexer.Exclamation_mark; span = _, end_pos } ->
         let _ = next parser in
         Ok (start_end (start_pos name_span) end_pos (Tr_non_null_named name_span))
       | _ -> Ok (replace name_span (Tr_named name_span))
 
-let parse_variable_definition parser = match expect parser Gql_lexer.Dollar with
+let parse_variable_definition parser = match expect parser Graphql_lexer.Dollar with
   | Error e -> Error e
   | Ok { span = start_pos, _ } -> match expect_name parser with
     | Error e -> Error e
-    | Ok name_span -> match expect parser Gql_lexer.Colon with
+    | Ok name_span -> match expect parser Graphql_lexer.Colon with
       | Error e -> Error e
       | Ok _ -> match parse_type parser with
         | Error e -> Error e
-        | Ok ty -> match skip parser Gql_lexer.Equals with
+        | Ok ty -> match skip parser Graphql_lexer.Equals with
           | Error e -> Error e
-          | Ok Some _ -> begin match Value.parse_value_literal true parser with
+          | Ok Some _ -> begin match Graphql_parser_value.parse_value_literal true parser with
             | Error e -> Error e
             | Ok default_value -> Ok (start_end
               start_pos
@@ -106,17 +106,17 @@ let parse_variable_definition parser = match expect parser Gql_lexer.Dollar with
 
 
 let parse_variable_definitions parser = match peek parser with
-  | { item = Gql_lexer.Paren_open } ->
+  | { item = Graphql_lexer.Paren_open } ->
     map_ok (fun span -> Some (map (fun items -> List.map (fun s -> s.item) items) span))
-      (delimited_nonempty_list parser Gql_lexer.Paren_open parse_variable_definition Gql_lexer.Paren_close)
+      (delimited_nonempty_list parser Graphql_lexer.Paren_open parse_variable_definition Graphql_lexer.Paren_close)
   | _ -> Ok None
 
 
 let rec parse_selection_set parser =
-  delimited_nonempty_list parser Gql_lexer.Curly_open parse_selection Gql_lexer.Curly_close
+  delimited_nonempty_list parser Graphql_lexer.Curly_open parse_selection Graphql_lexer.Curly_close
 
 and parse_optional_selection_set parser = match peek parser with
-  | { item = Gql_lexer.Curly_open } -> map_ok (fun x -> Some x) (parse_selection_set parser)
+  | { item = Graphql_lexer.Curly_open } -> map_ok (fun x -> Some x) (parse_selection_set parser)
   | span -> Ok None
 
 
@@ -143,7 +143,7 @@ and parse_field parser =
   in 
   match expect_name parser with 
   | Error e -> Error e
-  | Ok alias_or_name -> match skip parser Gql_lexer.Colon with
+  | Ok alias_or_name -> match skip parser Graphql_lexer.Colon with
     | Error e -> Error e
     | Ok None -> parse_rest None alias_or_name
     | Ok Some _ -> match expect_name parser with
@@ -151,17 +151,17 @@ and parse_field parser =
       | Ok name -> parse_rest (Some alias_or_name) name
 
 and parse_fragment parser =
-  match expect parser Gql_lexer.Ellipsis with
+  match expect parser Graphql_lexer.Ellipsis with
   | Error e -> Error e
   | Ok { span = start_pos, _ } -> match peek parser with
-    | { item = Gql_lexer.Name "on" } -> begin let _ = next parser in
+    | { item = Graphql_lexer.Name "on" } -> begin let _ = next parser in
       match expect_name parser with
       | Error e -> Error e
       | Ok name_span -> match parse_directives parser with
         | Error e -> Error e
         | Ok directives -> match parse_selection_set parser with
           | Error e -> Error e
-          | Ok selection_set -> Ok (Ast.InlineFragment (start_end 
+          | Ok selection_set -> Ok (InlineFragment (start_end 
             start_pos
             (end_pos selection_set)
             { 
@@ -171,9 +171,9 @@ and parse_fragment parser =
             }
           ))
       end
-    | { item = Gql_lexer.Curly_open } -> begin match parse_selection_set parser with
+    | { item = Graphql_lexer.Curly_open } -> begin match parse_selection_set parser with
       | Error e -> Error e
-      | Ok selection_set -> Ok (Ast.InlineFragment (start_end
+      | Ok selection_set -> Ok (InlineFragment (start_end
         start_pos
         (end_pos selection_set)
         {
@@ -182,11 +182,11 @@ and parse_fragment parser =
           if_selection_set = selection_set;
         }))
       end
-    | { item = Gql_lexer.Name _ } -> begin match expect_name parser with
+    | { item = Graphql_lexer.Name _ } -> begin match expect_name parser with
       | Error e -> Error e
       | Ok name_span -> match parse_directives parser with
         | Error e -> Error e
-        | Ok directives -> Ok (Ast.FragmentSpread (start_end
+        | Ok directives -> Ok (FragmentSpread (start_end
           start_pos
           (match last directives with | Some s -> (end_pos s) | None -> (end_pos name_span))
           {
@@ -195,11 +195,11 @@ and parse_fragment parser =
           }
         ))
       end
-    | { item = Gql_lexer.At } -> begin match parse_directives parser with
+    | { item = Graphql_lexer.At } -> begin match parse_directives parser with
       | Error e -> Error e
       | Ok directives -> match parse_selection_set parser with 
         | Error e -> Error e
-        | Ok selection_set -> Ok (Ast.InlineFragment (start_end
+        | Ok selection_set -> Ok (InlineFragment (start_end
           start_pos
           (end_pos selection_set)
           {
@@ -215,18 +215,18 @@ and parse_fragment parser =
 
 and parse_selection parser =
   match peek parser with
-  | { item = Gql_lexer.Ellipsis } -> parse_fragment parser
-  | _ -> map_ok (fun (span: Ast.field spanning) -> Ast.Field span) (parse_field parser)
+  | { item = Graphql_lexer.Ellipsis } -> parse_fragment parser
+  | _ -> map_ok (fun (span: field spanning) -> Field span) (parse_field parser)
 
 let parse_operation_type parser = match next parser with
   | Error e -> Error e
-  | Ok ({ item = Gql_lexer.Name "query" } as span) -> Ok (replace span Ast.Query)
-  | Ok ({ item = Gql_lexer.Name "mutation"} as span) -> Ok (replace span Ast.Mutation)
+  | Ok ({ item = Graphql_lexer.Name "query" } as span) -> Ok (replace span Query)
+  | Ok ({ item = Graphql_lexer.Name "mutation"} as span) -> Ok (replace span Mutation)
   | Ok span -> Error (map (fun t -> Unexpected_token t) span)
 
 let parse_operation_definition parser =
   match peek parser with
-  | { item = Gql_lexer.Curly_open } -> begin match parse_selection_set parser with
+  | { item = Graphql_lexer.Curly_open } -> begin match parse_selection_set parser with
     | Error e -> Error e
     | Ok span -> Ok (replace span {
         o_type = Query;
@@ -258,19 +258,19 @@ let parse_operation_definition parser =
     match parse_operation_type parser with
     | Error e -> Error e
     | Ok operation_type -> match peek parser with
-      | { item = Gql_lexer.Name _ } -> begin match expect_name parser with
+      | { item = Graphql_lexer.Name _ } -> begin match expect_name parser with
         | Error e -> Error e
         | Ok name_span -> parse_rest operation_type.item (Some name_span)
         end
       | _ -> parse_rest operation_type.item None
 
 
-let parse_fragment_definition parser = match expect parser (Gql_lexer.Name "fragment") with
+let parse_fragment_definition parser = match expect parser (Graphql_lexer.Name "fragment") with
   | Error e -> Error e
   | Ok { span = start_pos, _ } -> match expect_name parser with
     | Error e -> Error e
-    | Ok ({ item = "on" } as span) -> Error (replace span (Unexpected_token (Gql_lexer.Name "on")))
-    | Ok name_span -> match expect parser (Gql_lexer.Name "on") with
+    | Ok ({ item = "on" } as span) -> Error (replace span (Unexpected_token (Graphql_lexer.Name "on")))
+    | Ok name_span -> match expect parser (Graphql_lexer.Name "on") with
       | Error e -> Error e
       | Ok _ -> match expect_name parser with
         | Error e -> Error e
@@ -290,17 +290,17 @@ let parse_fragment_definition parser = match expect parser (Gql_lexer.Name "frag
 
 let parse_definition parser =
   match peek parser with
-  | { item = Gql_lexer.Curly_open } | {item = Gql_lexer.Name "query" } | { item = Gql_lexer.Name "mutation"} ->
-    map_ok (fun def -> Ast.Operation def) (parse_operation_definition parser)
-  | { item = Gql_lexer.Name "fragment" } ->
-    map_ok (fun def -> Ast.Fragment def) (parse_fragment_definition parser)
+  | { item = Graphql_lexer.Curly_open } | {item = Graphql_lexer.Name "query" } | { item = Graphql_lexer.Name "mutation"} ->
+    map_ok (fun def -> Operation def) (parse_operation_definition parser)
+  | { item = Graphql_lexer.Name "fragment" } ->
+    map_ok (fun def -> Fragment def) (parse_fragment_definition parser)
   | span -> Error (map (fun t -> Unexpected_token t) span)
 
 let parse_document parser =
   let rec scanner acc = match parse_definition parser with
     | Error e -> Error e
     | Ok def -> match peek parser with
-      | { item = Gql_lexer.End_of_file } -> Ok (List.rev (def :: acc))
+      | { item = Graphql_lexer.End_of_file } -> Ok (List.rev (def :: acc))
       | _ -> scanner (def :: acc)
   in
   scanner []
