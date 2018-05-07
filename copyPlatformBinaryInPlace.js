@@ -26,7 +26,7 @@ if (!supported) {
     console.error('please open an issue at our repository, linked above. Please');
     console.error('specify that you are on the ' + platform + ' platform,');
     console.error('on the ' + arch + ' architecture.');
-    
+
     if (!process.env.IS_GRAPHQL_PPX_CI) {
         process.exit(1);
     }
@@ -38,6 +38,11 @@ if (process.env.IS_GRAPHQL_PPX_CI) {
 }
 
 if (!fs.existsSync('ppx')) {
-    fs.copyFileSync(filename, 'ppx');
+    if (typeof fs.copyFileSync === 'function') {
+        fs.copyFileSync(filename, 'ppx');
+    } else {
+        fs.writeFileSync('ppx', fs.readFileSync(filename));
+    }
+
     fs.chmodSync('ppx', 0755);
 }
