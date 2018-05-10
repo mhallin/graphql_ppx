@@ -38,11 +38,19 @@ if (process.env.IS_GRAPHQL_PPX_CI) {
 }
 
 if (!fs.existsSync('ppx')) {
-    if (typeof fs.copyFileSync === 'function') {
-        fs.copyFileSync(filename, 'ppx');
-    } else {
-        fs.writeFileSync('ppx', fs.readFileSync(filename));
-    }
-
+    copyFileSync(filename, 'ppx');
     fs.chmodSync('ppx', 0755);
+}
+
+if (!fs.existsSync('ppx.exe')) {
+    copyFileSync(filename, 'ppx.exe');
+    fs.chmodSync('ppx.exe', 0755);
+}
+
+function copyFileSync(source, dest) {
+    if (typeof fs.copyFileSync === 'function') {
+        fs.copyFileSync(source, dest);
+    } else {
+        fs.writeFileSync(dest, fs.readFileSync(source));
+    }
 }
