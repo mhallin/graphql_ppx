@@ -16,7 +16,7 @@ let rec make_make_fun map_loc schema document =
       ({txt = "bs.obj"; loc = loc},
        PStr [
          [%stri { 
-           query = query; 
+           query = ppx_printed_query; 
            variables = [%e variables]; 
            parse = parse; }] [@metaloc loc]
        ]) in

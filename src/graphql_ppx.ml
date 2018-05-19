@@ -98,7 +98,7 @@ let mapper argv =
                 Mod.mk ~loc
                   (Pmod_structure [
                       [%stri exception Graphql_error];
-                      [%stri let query = [%e if is_ast_output
+                      [%stri let ppx_printed_query = [%e if is_ast_output
                         then Ast_serializer_apollo.serialize_document query document
                         else Exp.constant ~loc (Const_string (reprinted_query, delim))]];
                       [%stri let parse = fun value -> [%e parse_fn]];
