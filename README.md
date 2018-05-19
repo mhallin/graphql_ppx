@@ -118,7 +118,7 @@ A simple example might make this a bit clear:
 module HeroQuery = [%graphql {| { hero { name } } |}];
 
 /* Construct a "packaged" query; HeroQuery takes no arguments: */
-let heroQuery = HeroQuery.make ();
+let heroQuery = HeroQuery.make();
 
 /* Send this query string to the server */
 let query = heroQuery##query;
@@ -127,10 +127,10 @@ let query = heroQuery##query;
 let sampleResponse = "{ \"hero\": {\"name\": \"R2-D2\"} }";
 
 /* Convert the response to JSON and parse the result */
-let result = Js.Json.parseExn sampleResponse |> query##parse;
+let result = Js.Json.parseExn(sampleResponse) |> query##parse;
 
 /* Now you've got a well-typed object! */
-Js.log ("The hero of the story is " ^ result##hero##name);
+Js.log("The hero of the story is " ++ result##hero##name);
 ```
 
 ### Integrating with the Fetch API
@@ -142,35 +142,29 @@ the Fetch API. I've been using this simple function to send/parse queries:
 exception Graphql_error string;
 
 let sendQuery q =>
-  Bs_fetch.(
-    fetchWithInit
-      "https://my-api.example.com/api"
-      (
-        RequestInit.make
-          method_::Post
-          body::(
-            Js.Dict.fromList [("query", Js.Json.string q##query), ("variables", q##variables)] |> Js.Json.object_ |> Js.Json.stringify |> BodyInit.make
-          )
-          credentials::Include
-          headers::(HeadersInit.makeWithArray [|("content-type", "application/json")|])
-          ()
-      ) |>
-    Js.Promise.then_ (
-      fun resp =>
-        if (Response.ok resp) {
-          Response.json resp |>
-          Js.Promise.then_ (
-            fun data =>
-              switch (Js.Json.decodeObject data) {
-              | Some obj => Js.Dict.unsafeGet obj "data" |> q##parse |> Js.Promise.resolve
-              | None => Js.Promise.reject @@ Graphql_error "Response is not an object"
-              }
-          )
-        } else {
-          Js.Promise.reject @@ Graphql_error ("Request failed: " ^ Response.statusText resp)
-        }
-    )
-  );
+  Bs_fetch.(fetchWithInit(
+    "https://my-api.example.com/api",
+    RequestInit.make(
+      ~method_=Post,
+      ~body=
+        Js.Dict.fromList([
+          ("query", Js.Json.string(q##query)), ("variables", q##variables)
+        ]) |> Js.Json.object_ |> Js.Json.stringify |> BodyInit.make,
+      ~credentials=Include,
+      ~headers=HeadersInit.makeWithArray [|("content-type", "application/json")|],
+      ())) |>
+    Js.Promise.then_(resp => {
+      if (Response.ok(resp)) {
+        Response.json(resp) |>
+        Js.Promise.then_(data =>
+          switch (Js.Json.decodeObject data) {
+          | Some obj => Js.Dict.unsafeGet(obj, "data") |> q##parse |> Js.Promise.resolve
+          | None => Js.Promise.reject(Graphql_error("Response is not an object"))
+          })
+      } else {
+        Js.Promise.reject(Graphql_error("Request failed: " ++ Response.statusText(resp)))
+      }
+    }));
 ```
 
 # Limitations
@@ -285,13 +279,12 @@ mutation($name: String!, $email: String!, $password: String!) {
 ];
 
 let x =
-  SignUpQuery.make name::"My name" email::"email@example.com" password::"secret" ()
-  |> Api.sendQuery |> Promise.then_ (fun response => {
+  SignUpQuery.make(~name="My name", ~email="email@example.com", ~password="secret", ())
+  |> Api.sendQuery |> Promise.then_(response =>
     switch (response##signUp) {
-    | `User user => Js.log2 "Signed up a user with name " user##name
-    | `Errors errors => Js.log2 "Errors when signing up: " errors
-    } |> Promise.resolve
-  });
+    | `User(user) => Js.log2("Signed up a user with name ", user##name)
+    | `Errors(errors) => Js.log2("Errors when signing up: ", errors)
+    } |> Promise.resolve);
 ```
 
 This helps with the fairly common pattern for mutations that can fail with
@@ -308,7 +301,6 @@ For this reason, another function called `makeWithVariables` is _also_
 generated. This function takes a single `Js.t` object containing all variables.
 
 ```reason
-
 module MyQuery = [%graphql {|
   mutation ($username: String!, $password: String!) {
     ...
@@ -316,10 +308,10 @@ module MyQuery = [%graphql {|
 |}];
 
 /* You can either use `make` with labelled arguments: */
-let query = MyQuery.make username::"testUser" password::"supersecret" ();
+let query = MyQuery.make(~username="testUser", password="supersecret", ());
 
 /* Or, you can use `makeWithVariables`: */
-let query = MyQuery.makeWithVariables { "username": "testUser", "password": "supersecret" };
+let query = MyQuery.makeWithVariables({ "username": "testUser", "password": "supersecret" });
 ```
 
 ## Getting the type of the parsed value
@@ -372,7 +364,7 @@ ready to be sent to Apollo.
 module HeroQuery = [%graphql {| { hero { name } } |}];
 
 /* Construct a "packaged" query; HeroQuery takes no arguments: */
-let heroQuery = HeroQuery.make ();
+let heroQuery = HeroQuery.make();
 
 /* This is no longer a string, but rather an object structure */
 let query = heroQuery##query;

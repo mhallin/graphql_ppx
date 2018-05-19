@@ -8,8 +8,8 @@ module MyQuery: {
     ~int: int,
     ~nullableFloat: float=?,
     ~float: float,
-    ~nullableBoolean: Js.boolean=?,
-    ~boolean: Js.boolean,
+    ~nullableBoolean: bool=?,
+    ~boolean: bool,
     ~nullableID: string=?,
     ~id: string,
     unit) => Js.t({ . parse: Js.Json.t => t, query: string, variables: Js.Json.t });
@@ -23,8 +23,8 @@ module MyQuery: {
       int: int,
       nullableFloat: option(float),
       float: float,
-      nullableBoolean: option(Js.boolean),
-      boolean: Js.boolean,
+      nullableBoolean: option(bool),
+      boolean: bool,
       nullableID: option(string),
       id: string,
     }) => Js.t({ . parse: Js.Json.t => t, query: string, variables: Js.Json.t });

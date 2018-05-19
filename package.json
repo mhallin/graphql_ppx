@@ -13,10 +13,10 @@
     "postinstall": "node copyPlatformBinaryInPlace.js"
   },
   "devDependencies": {
-    "@glennsl/bs-jest": "^0.3.2",
-    "bs-platform": "^2.1.0",
+    "@glennsl/bs-jest": "^0.4.2",
+    "bs-platform": "^3.0.0",
     "gql-tools": "^0.0.15",
-    "graphql": "^0.12.3",
+    "graphql": "^0.13.2",
     "graphql-tag": "^2.6.1"
   },
   "dependencies": {

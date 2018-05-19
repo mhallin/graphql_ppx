@@ -9,8 +9,8 @@ module MyQuery: {
       int: int,
       nullableFloat: option(float),
       float: float,
-      nullableBoolean: option(Js.boolean),
-      boolean: Js.boolean,
+      nullableBoolean: option(bool),
+      boolean: bool,
       nullableID: option(string),
       id: string,
     })
