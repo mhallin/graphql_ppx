@@ -1,3 +1,11 @@
+let typename_field = {
+  Schema.fm_name = "__typename";
+  fm_description = None;
+  fm_arguments = [];
+  fm_field_type = NonNull (Named "String");
+  fm_deprecation_reason = None
+}
+
 let map_items f t =
   let new_t = Hashtbl.create (Hashtbl.length t) in
   let mapper k v =
@@ -12,6 +20,12 @@ let map_values f = map_items (fun k v -> (k, f k v))
 let some_or o v = match o with
   | Some v -> v
   | None -> v
+
+let add_typename_if_missing fields =
+  let open Schema in
+  if List.exists (fun ({ fm_name }) -> fm_name = "__typename") fields
+    then fields
+    else typename_field :: fields
 
 exception Unknown_type_kind of string
 
@@ -78,7 +92,7 @@ let make_object_meta v =
   {
     om_name = v |> member "name" |> to_string;
     om_description = v |> member "description" |> to_string_option;
-    om_fields = v |> member "fields" |> to_list |> List.map make_field_meta;
+    om_fields = v |> member "fields" |> to_list |> List.map make_field_meta |> add_typename_if_missing;
     om_interfaces = v |> member "interfaces" |> to_list 
                     |> List.map (fun i -> i |> make_type_ref |> type_ref_name)
   }
@@ -98,7 +112,7 @@ let make_interface_meta v =
   {
     im_name = v |> member "name" |> to_string;
     im_description = v |> member "description" |> to_string_option;
-    im_fields = v |> member "fields" |> to_list |> List.map make_field_meta;
+    im_fields = v |> member "fields" |> to_list |> List.map make_field_meta |> add_typename_if_missing;
   }
 
 let make_union_meta v =
