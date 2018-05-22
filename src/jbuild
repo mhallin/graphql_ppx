@@ -6,4 +6,5 @@
               result
               yojson
               ppx_tools_versioned.metaquot_402))
+  (flags (:include jbuild.flags))
   (preprocess (pps (ppx_tools_versioned.metaquot_402)))))

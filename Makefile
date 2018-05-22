@@ -1,6 +1,8 @@
 JBUILDER?=jbuilder
 
-build:
+OS:=$(shell uname -s)
+
+build: src/jbuild.flags
 	$(JBUILDER) build @graphql_ppx
 	cp _build/default/src/graphql_ppx.exe .
 
@@ -11,6 +13,14 @@ test: build tests/graphql_schema.json
 
 tests/graphql_schema.json: tests/schema.gql
 	node ./node_modules/gql-tools/cli/gqlschema.js -o tests/graphql_schema.json tests/schema.gql
+
+ifeq ($(OS),Linux)
+src/jbuild.flags:
+	echo '(-ccopt -static)' > $@
+else
+src/jbuild.flags:
+	echo '()' > $@
+endif
 
 clean:
 	$(JBUILDER) clean
