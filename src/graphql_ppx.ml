@@ -101,6 +101,7 @@ let mapper argv =
                       [%stri let ppx_printed_query = [%e if is_ast_output
                         then Ast_serializer_apollo.serialize_document query document
                         else Exp.constant ~loc (Const_string (reprinted_query, delim))]];
+                      [%stri let query = ppx_printed_query];
                       [%stri let parse = fun value -> [%e parse_fn]];
 
                       {
