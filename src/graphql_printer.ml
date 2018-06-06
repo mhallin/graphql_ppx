@@ -3,8 +3,6 @@ open Source_pos
 
 open Schema
 
-exception Unsafe_unwrap_error
-
 (*
   We rely on graphql_ppx.ml having created the result decoder before running
   the functions in this file. The result decoder produces proper and located
@@ -14,9 +12,6 @@ exception Unsafe_unwrap_error
   The tricky part is of course to make sure that they rely on the same kind
   of validation logic :/
 *)
-let unsafe_unwrap = function
-  | None -> raise Unsafe_unwrap_error
-  | Some v -> v
 
 let rec type_ref_name = function
   | Named n -> n
@@ -78,13 +73,13 @@ and print_selection schema ty s = match s with
   | InlineFragment { item } -> print_inline_fragment schema ty item
 
 and print_field schema ty f =
-  let ty_fields = unsafe_unwrap @@ match ty with
+  let ty_fields = Option.unsafe_unwrap @@ match ty with
     | Interface {im_fields} -> Some im_fields
     | Object {om_fields} -> Some om_fields
     | _ -> None
   in
   let field_ty = (List.find (fun fm -> fm.fm_name = f.fd_name.item) ty_fields).fm_field_type
-                 |> type_ref_name |> lookup_type schema |> unsafe_unwrap in
+                 |> type_ref_name |> lookup_type schema |> Option.unsafe_unwrap in
   (match f.fd_alias with | Some {item} -> item ^ ": " | None -> "") ^
   f.fd_name.item ^
   (match f.fd_arguments with | Some {item} -> print_arguments item | None -> "") ^
@@ -93,7 +88,7 @@ and print_field schema ty f =
 
 
 and print_inline_fragment schema ty f =
-  let inner_ty = match f.if_type_condition with | Some {item} -> lookup_type schema item |> unsafe_unwrap | None -> ty in
+  let inner_ty = match f.if_type_condition with | Some {item} -> lookup_type schema item |> Option.unsafe_unwrap | None -> ty in
   "..." ^ 
   (match f.if_type_condition with | Some {item} -> "on " ^ item ^ " " | None -> " ") ^
   (print_directives f.if_directives) ^
@@ -108,17 +103,17 @@ let print_variable_definitions defs =
   "(" ^ (List.map print_variable_definition defs |> String.concat ", ") ^ ")"
 
 let print_operation schema op =
-  let ty_name = match op.o_type with | Query -> schema.meta.sm_query_type | Mutation -> unsafe_unwrap schema.meta.sm_mutation_type in
+  let ty_name = match op.o_type with | Query -> schema.meta.sm_query_type | Mutation -> Option.unsafe_unwrap schema.meta.sm_mutation_type in
   (match op.o_type with | Query -> "query " | Mutation -> "mutation ") ^
   (match op.o_name with | Some { item } -> item | None -> "") ^
   (match op.o_variable_definitions with | Some { item } -> print_variable_definitions item | None -> "") ^
   (print_directives op.o_directives) ^
-  (print_selection_set schema (lookup_type schema ty_name |> unsafe_unwrap) op.o_selection_set.item)
+  (print_selection_set schema (lookup_type schema ty_name |> Option.unsafe_unwrap) op.o_selection_set.item)
 
 let print_fragment schema f =
   "fragment " ^ f.fg_name.item ^ " on " ^ f.fg_type_condition.item ^ " " ^
   (print_directives f.fg_directives) ^
-  (print_selection_set schema (lookup_type schema f.fg_type_condition.item |> unsafe_unwrap) f.fg_selection_set.item)
+  (print_selection_set schema (lookup_type schema f.fg_type_condition.item |> Option.unsafe_unwrap) f.fg_selection_set.item)
 
 let print_definition schema def = match def with
   | Operation { item = operation } -> print_operation schema operation

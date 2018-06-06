@@ -2,7 +2,7 @@ let typename_field = {
   Schema.fm_name = "__typename";
   fm_description = None;
   fm_arguments = [];
-  fm_field_type = NonNull (Named "String");
+  fm_field_type = Schema.NonNull (Schema.Named "String");
   fm_deprecation_reason = None
 }
 
@@ -158,6 +158,35 @@ let make_type_map type_array =
   let type_map = type_map_loop 0 (Hashtbl.create (Array.length type_array)) in
   map_values make_type_meta type_map
 
+let make_directive_location directive_location =
+  let open Schema in
+  let open Yojson.Basic.Util in
+  match directive_location |> to_string with
+  | "QUERY" -> Dl_query
+  | "MUTATION" -> Dl_mutation
+  | "SUBSCRIPTION" -> Dl_subscription
+  | "FIELD" -> Dl_field
+  | "FRAGMENT_DEFINITION" -> Dl_fragment_definition
+  | "FRAGMENT_SPREAD" -> Dl_fragment_spread
+  | "INLINE_FRAGMENT" -> Dl_inline_fragment
+  | _ -> Dl_unknown
+
+let make_directive_meta _ directive =
+  let open Schema in
+  let open Yojson.Basic.Util in
+  {
+    dm_name = directive |> member "name" |> to_string;
+    dm_locations = directive |> member "locations" |> to_list |> List.map make_directive_location;
+    dm_arguments = directive |> member "args" |> to_list |> List.map make_argument_meta;
+  }
+
+let make_directive_map directive_array =
+  let open Yojson.Basic.Util in
+  let directive_json_map = Hashtbl.create (Array.length directive_array) in
+  let () = Array.iter (fun directive ->
+    Hashtbl.add directive_json_map (directive |> member "name" |> to_string) directive) directive_array in
+  map_values make_directive_meta directive_json_map
+
 let make_schema_meta v =
   let open Yojson.Basic.Util in
   let open Schema in
@@ -177,4 +206,5 @@ let read_schema_file name =
   {
     meta = make_schema_meta schema;
     type_map = schema |> member "types" |> to_list |> Array.of_list |> make_type_map;
+    directive_map = schema |> member "directives" |> to_list |> Array.of_list |> make_directive_map;
   }

@@ -1,10 +1,10 @@
 open Source_pos
 
-type typeRef =
+type type_ref =
   | Tr_named of string spanning
-  | Tr_list of typeRef spanning
+  | Tr_list of type_ref spanning
   | Tr_non_null_named of string spanning
-  | Tr_non_null_list of typeRef spanning
+  | Tr_non_null_list of type_ref spanning
 
 type input_value =
   | Iv_null
@@ -18,7 +18,7 @@ type input_value =
   | Iv_object of (string spanning * input_value spanning) list
 
 type variable_definition = {
-  vd_type: typeRef spanning;
+  vd_type: type_ref spanning;
   vd_default_value: input_value spanning option
 }
 
@@ -44,7 +44,7 @@ type field = {
   fd_selection_set: selection list spanning option;
 }
 
-and inlineFragment = {
+and inline_fragment = {
   if_type_condition: string spanning option;
   if_directives: directive spanning list;
   if_selection_set: selection list spanning;
@@ -53,12 +53,12 @@ and inlineFragment = {
 and selection =
   | Field of field spanning
   | FragmentSpread of fragment_spread spanning
-  | InlineFragment of inlineFragment spanning
+  | InlineFragment of inline_fragment spanning
 
-type operationType = Query | Mutation
+type operation_type = Query | Mutation
 
 type operation = {
-  o_type: operationType;
+  o_type: operation_type;
   o_name: string spanning option;
   o_variable_definitions: variable_definitions spanning option;
   o_directives: directive spanning list;
@@ -77,3 +77,9 @@ type definition =
   | Fragment of fragment spanning
 
 type document = definition list
+
+let rec innermost_name = function
+  | Tr_named { item }
+  | Tr_non_null_named { item } -> item
+  | Tr_list { item } 
+  | Tr_non_null_list { item } -> innermost_name item

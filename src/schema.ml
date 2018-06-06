@@ -74,9 +74,26 @@ type schema_meta = {
   sm_subscription_type: string option;
 }
 
+type directive_location =
+  | Dl_query
+  | Dl_mutation
+  | Dl_subscription
+  | Dl_field
+  | Dl_fragment_definition
+  | Dl_fragment_spread
+  | Dl_inline_fragment
+  | Dl_unknown
+
+type directive_meta = {
+  dm_name: string;
+  dm_locations: directive_location list;
+  dm_arguments: argument_meta list;
+}
+
 type schema = {
   meta: schema_meta;
   type_map: (string, type_meta) Hashtbl.t;
+  directive_map: (string, directive_meta) Hashtbl.t;
 }
 
 let query_type s = Hashtbl.find s.type_map s.meta.sm_query_type
@@ -90,10 +107,10 @@ exception Inconsistent_schema of string
 
 let lookup_field ty name = 
   let find_field fs = 
-  match List.find_all (fun f -> f.fm_name = name) fs with
-  | [] -> None
-  | [x] -> Some x
-  | _ -> raise @@ Inconsistent_schema ("Multiple fields named " ^ name)
+    match List.find_all (fun f -> f.fm_name = name) fs with
+    | [] -> None
+    | [x] -> Some x
+    | _ -> raise @@ Inconsistent_schema ("Multiple fields named " ^ name)
   in
   match ty with
   | Object { om_fields } -> find_field om_fields
@@ -102,6 +119,21 @@ let lookup_field ty name =
   | Enum { em_name } -> raise @@ Invalid_type ("Type " ^ em_name ^ " doesn't have any fields")
   | Union { um_name } -> raise @@ Invalid_type ("Type " ^ um_name ^ " doesn't have any fields")
   | InputObject { iom_name } -> raise @@ Invalid_type ("Type " ^ iom_name ^ " doesn't have any fields")
+
+let lookup_input_field ty name =
+  let find_field fs =
+    match List.find_all (fun am -> am.am_name = name) fs with
+    | [] -> None
+    | [x] -> Some x
+    | _ -> raise @@ Inconsistent_schema ("Multiple input fields named " ^ name)
+  in
+  match ty with
+  | Object { om_name = name }
+  | Interface { im_name = name }
+  | Scalar { sm_name = name }
+  | Enum { em_name = name }
+  | Union { um_name = name } -> raise @@ Invalid_type ("Type " ^ name ^ " doesn't have any input fields")
+  | InputObject { iom_input_fields } -> find_field iom_input_fields
 
 let type_name ty = match ty with
   | Scalar { sm_name } -> sm_name
@@ -117,8 +149,14 @@ let lookup_type schema name =
   | [x] -> Some x
   | _ -> raise @@ Inconsistent_schema ("Multiple types named " ^ name)
 
+let lookup_directive schema name =
+  match (Hashtbl.find_all schema.directive_map name) with
+  | [] -> None
+  | [x] -> Some x
+  | _ -> raise @@ Inconsistent_schema ("Multiple directives named " ^ name)
+
 let all_enums schema = Hashtbl.fold (fun _ v acc ->
-  match v with
+    match v with
     | Enum e -> e :: acc
     | _ -> acc) schema.type_map []
 
@@ -133,3 +171,7 @@ let extract_name_from_type_meta =
 
 let compare_type_meta x y =
   String.compare (extract_name_from_type_meta x) (extract_name_from_type_meta y)
+
+let rec innermost_name = function
+  | Named name -> name
+  | NonNull inner | List inner -> innermost_name inner

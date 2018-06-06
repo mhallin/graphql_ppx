@@ -47,6 +47,10 @@ let rec find_schema_file dir =
   else 
     find_schema_file (Filename.dirname dir)
 
+let make_error_expr loc message =
+  let ext = Ast_mapper.extension_of_error (Location.error ~loc message) in
+  Ast_helper.Exp.extension ~loc ext
+
 exception Schema_file_not_found
 
 let mapper argv =
@@ -89,42 +93,50 @@ let mapper argv =
                   Location.error ~loc:(add_loc delimLength loc e.span) (fmt_parse_err e.item)
                 ))
               | Result.Ok document ->
-                let error_marker = { Generator_utils.has_error = false } in
-                let parse_fn = Result_decoder.unify_document_schema error_marker (add_loc delimLength loc) schema document in
-                if error_marker.Generator_utils.has_error then
+                match Validations.run_validators (add_loc delimLength loc) schema document with
+                | Some errs ->
                   Mod.mk
-                    (Pmod_structure [
-                        [%stri exception Graphql_error of string];
-                        [%stri let parse = fun value -> [%e Output_bucklescript_decoder.generate_decoder parse_fn]];
-                      ])
-                else
-                  let (rec_flag, encoders) = 
-                    Variable_encoder.generate_encoders schema loc (add_loc delimLength loc) document in
-                  let reprinted_query = Graphql_printer.print_document schema document in
-                  let make_fn, make_with_variables_fn = Unifier.make_make_fun (add_loc delimLength loc) schema document in
-                  Mod.mk
-                    (Pmod_structure [
-                        [%stri exception Graphql_error of string];
-                        [%stri let ppx_printed_query = [%e if is_ast_output
-                                 then Ast_serializer_apollo.serialize_document query document
-                                 else Exp.constant (Const_string (reprinted_query, delim))]];
-                        [%stri let query = ppx_printed_query];
-                        [%stri let parse = fun value -> [%e Output_bucklescript_decoder.generate_decoder parse_fn]];
+                    (Pmod_structure (List.map (fun (loc, msg) ->
+                    [%stri let _ = [%e 
+                         make_error_expr loc msg]])
+                         errs))
+                | None ->
+                  let error_marker = { Generator_utils.has_error = false } in
+                  let parse_fn = Result_decoder.unify_document_schema error_marker (add_loc delimLength loc) schema document in
+                  if error_marker.Generator_utils.has_error then
+                    Mod.mk
+                      (Pmod_structure [
+                          [%stri exception Graphql_error of string];
+                          [%stri let parse = fun value -> [%e Output_bucklescript_decoder.generate_decoder parse_fn]];
+                        ])
+                  else
+                    let (rec_flag, encoders) = 
+                      Variable_encoder.generate_encoders schema loc (add_loc delimLength loc) document in
+                    let reprinted_query = Graphql_printer.print_document schema document in
+                    let make_fn, make_with_variables_fn = Unifier.make_make_fun (add_loc delimLength loc) schema document in
+                    Mod.mk
+                      (Pmod_structure [
+                          [%stri exception Graphql_error of string];
+                          [%stri let ppx_printed_query = [%e if is_ast_output
+                                   then Ast_serializer_apollo.serialize_document query document
+                                   else Exp.constant (Const_string (reprinted_query, delim))]];
+                          [%stri let query = ppx_printed_query];
+                          [%stri let parse = fun value -> [%e Output_bucklescript_decoder.generate_decoder parse_fn]];
 
-                        {
-                          pstr_desc = (Pstr_value (rec_flag, encoders));
-                          pstr_loc = Location.none;
-                        };
-                        [%stri let make = [%e make_fn]];
-                        [%stri let makeWithVariables = [%e make_with_variables_fn]];
+                          {
+                            pstr_desc = (Pstr_value (rec_flag, encoders));
+                            pstr_loc = Location.none;
+                          };
+                          [%stri let make = [%e make_fn]];
+                          [%stri let makeWithVariables = [%e make_with_variables_fn]];
 
-                        (* Some functor magic to determine the return type of parse *)
-                        [%stri module type mt_ret = sig type t end];
-                        [%stri type 'a typed_ret = (module mt_ret with type t = 'a)];
-                        [%stri let ret_type (type a) (f: _ -> a) = (let module MT_Ret = struct type t = a end in (module MT_Ret): a typed_ret)];
-                        [%stri module MT_Ret = (val ret_type parse)];
-                        [%stri type t = MT_Ret.t];
-                      ])
+                          (* Some functor magic to determine the return type of parse *)
+                          [%stri module type mt_ret = sig type t end];
+                          [%stri type 'a typed_ret = (module mt_ret with type t = 'a)];
+                          [%stri let ret_type (type a) (f: _ -> a) = (let module MT_Ret = struct type t = a end in (module MT_Ret): a typed_ret)];
+                          [%stri module MT_Ret = (val ret_type parse)];
+                          [%stri type t = MT_Ret.t];
+                        ])
           end
         | _ -> raise (Location.Error (
             Location.error ~loc "[%graphql] accepts a string, e.g. [%graphql {| { query |}]"
