@@ -2,6 +2,7 @@ open Graphql_ast
 open Source_pos
 open Schema
 
+open Ast_402
 open Parsetree
 open Asttypes
 

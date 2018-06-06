@@ -1,8 +1,4 @@
-open Migrate_parsetree
-
-module To_current = Convert(OCaml_402)(OCaml_current)
-
-open Ast_402
+module To_current = Migrate_parsetree.Convert(Migrate_parsetree.OCaml_402)(Migrate_parsetree.OCaml_current)
 
 open Source_pos
 
@@ -54,6 +50,9 @@ let rec find_schema_file dir =
 exception Schema_file_not_found
 
 let mapper argv =
+  let open Ast_402 in
+  let open Asttypes in
+  let open Parsetree in
   let open Ast_mapper in
   let open Ast_helper in
   let open Parsetree in
@@ -136,4 +135,4 @@ let mapper argv =
 
   To_current.copy_mapper { default_mapper with module_expr }
 
-let () = Compiler_libs.Ast_mapper.register "graphql" (fun argv -> mapper argv)
+let () = Migrate_parsetree.Compiler_libs.Ast_mapper.register "graphql" (fun argv -> mapper argv)

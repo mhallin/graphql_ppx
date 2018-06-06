@@ -1,3 +1,7 @@
+open Ast_402
+open Parsetree
+open Asttypes
+
 type error_marker = {
   mutable has_error: bool
 }
@@ -19,3 +23,6 @@ let error_expr marker map_loc span message =
 let some_or o d = match o with
   | Some v -> v
   | None -> d
+
+let capitalize_ascii = String.capitalize
+let uncapitalize_ascii = String.uncapitalize

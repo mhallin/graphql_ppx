@@ -11,7 +11,7 @@ open Generator_utils
 
 exception Unimplemented of string
 
-let mangle_enum_name = String.uncapitalize
+let mangle_enum_name = Generator_utils.uncapitalize_ascii
 
 let make_expression loc pexp_desc  = {
   pexp_desc; 

@@ -1,3 +1,7 @@
+open Ast_402
+open Parsetree
+open Asttypes
+
 open Graphql_ast
 open Source_pos
 
@@ -14,7 +18,7 @@ let ser_optional_list serializer = function
 let ser_name { item = name } = 
   [%expr Js.Json.object_(Js.Dict.fromArray([|
     ("kind", Js.Json.string("Name"));
-    ("value", Js.Json.string([%e Ast_helper.Exp.constant (Asttypes.Const_string (name, None))]));
+    ("value", Js.Json.string([%e Ast_helper.Exp.constant (Const_string (name, None))]));
   |]))]
 
 let rec ser_type = function
@@ -47,15 +51,15 @@ let rec ser_value = function
   | { item = Iv_null } -> [%expr Js.Json.object_(Js.Dict.fromArray([| ("kind", Js.Json.string("NullValue")) |]))]
   | { item = Iv_int i } -> [%expr Js.Json.object_(Js.Dict.fromArray([|
       ("kind", Js.Json.string("IntValue"));
-      ("value", Js.Json.string([%e Ast_helper.Exp.constant (Asttypes.Const_string (string_of_int i, None))]));
+      ("value", Js.Json.string([%e Ast_helper.Exp.constant (Const_string (string_of_int i, None))]));
     |]))]
   | { item = Iv_float f } -> [%expr Js.Json.object_(Js.Dict.fromArray([|
       ("kind", Js.Json.string("FloatValue"));
-      ("value", Js.Json.string([%e Ast_helper.Exp.constant (Asttypes.Const_string (string_of_float f, None))]));
+      ("value", Js.Json.string([%e Ast_helper.Exp.constant (Const_string (string_of_float f, None))]));
     |]))]
   | { item = Iv_string s } -> [%expr Js.Json.object_(Js.Dict.fromArray([|
       ("kind", Js.Json.string("StringValue"));
-      ("value", Js.Json.string([%e Ast_helper.Exp.constant (Asttypes.Const_string (s, None))]));
+      ("value", Js.Json.string([%e Ast_helper.Exp.constant (Const_string (s, None))]));
     |]))]
   | { item = Iv_boolean b } -> [%expr Js.Json.object_(Js.Dict.fromArray([|
       ("kind", Js.Json.string("BooleanValue"));
@@ -63,7 +67,7 @@ let rec ser_value = function
     |]))]
   | { item = Iv_enum e } -> [%expr Js.Json.object_(Js.Dict.fromArray([|
       ("kind", Js.Json.string("EnumValue"));
-      ("value", Js.Json.string([%e Ast_helper.Exp.constant (Asttypes.Const_string (e, None))]));
+      ("value", Js.Json.string([%e Ast_helper.Exp.constant (Const_string (e, None))]));
     |]))]
   | { item = Iv_variable v; span } -> [%expr Js.Json.object_(Js.Dict.fromArray([|
       ("kind", Js.Json.string("Variable"));
@@ -171,8 +175,8 @@ let serialize_document source defs =
     ("definitions", [%e ser_list_to_array ser_definition defs]);
     ("loc", Js.Json.object_(Js.Dict.fromArray([|
       ("start", Js.Json.number(0.0));
-      ("end", Js.Json.number([%e Ast_helper.Exp.constant (Asttypes.Const_float (defs |> document_end |> string_of_int))]));
-      ("source", Js.Json.string([%e Ast_helper.Exp.constant (Asttypes.Const_string (source, None))]));
+      ("end", Js.Json.number([%e Ast_helper.Exp.constant (Const_float (defs |> document_end |> string_of_int))]));
+      ("source", Js.Json.string([%e Ast_helper.Exp.constant (Const_string (source, None))]));
       ("locationOffset", Js.Json.object_(Js.Dict.fromArray([|
         ("column", Js.Json.number(1.0));
         ("line", Js.Json.number(1.0));

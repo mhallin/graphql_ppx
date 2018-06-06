@@ -11,7 +11,7 @@ tags: ["bucklescript" "reasonml" "ppx" "graphql"]
 build: [
   [make "build"]
 ]
-available: [ocaml-version = "4.02.3"]
+available: [ocaml-version >= "4.02.3"]
 depends: [
   "ocaml-migrate-parsetree" {build}
   "result" {build}

@@ -136,7 +136,7 @@ and unify_union error_marker map_loc span schema union_meta selection_set =
 and unify_variant error_marker map_loc span ty schema selection_set =
   let loc = map_loc span in
   let selection_name = function
-    | Field { item } -> String.capitalize (some_or item.fd_alias item.fd_name).item
+    | Field { item } -> Generator_utils.capitalize_ascii (some_or item.fd_alias item.fd_name).item
     | FragmentSpread { span } -> raise_error map_loc span "Variant selections can only contain fields"
     | InlineFragment { span } -> raise_error map_loc span "Variant selections can only contain fields"
   in
@@ -155,7 +155,7 @@ and unify_variant error_marker map_loc span ty schema selection_set =
             match Js.Json.decodeNull temp with
             | None -> let value = temp in 
               [%e Ast_helper.(Exp.variant ~loc:loc 
-                                (String.capitalize key)
+                                (Generator_utils.capitalize_ascii key)
                                 (Some (unify_type error_marker false map_loc span inner_type schema item.fd_selection_set)))]
             | Some _ -> [%e match_loop ty tl]] [@metaloc loc]
       end
@@ -189,6 +189,11 @@ and unify_variant error_marker map_loc span ty schema selection_set =
             Typ.variant ~loc:loc
               (List.map(fun s -> Rtag (selection_name s, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = loc }])) item)
               Closed None) in
+(* =======
+          Typ.variant ~loc:loc
+            (List.map(fun s -> Rtag ({ loc; txt = selection_name s }, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = loc }])) item)
+            Closed None) in
+>>>>>>> Stashed changes *)
         [%expr match Js.Json.decodeObject value with
           | None -> raise Graphql_error
           | Some value -> ([%e matcher]: [%t variant_type])] [@metaloc loc]
@@ -238,6 +243,11 @@ and unify_field error_marker map_loc field_span ty schema =
        [("", parser_expr)])
   | { item = { d_arguments = None }; span }:: _ -> (field_key, error_expr error_marker map_loc span "bsDecoder must be given 'fn' argument")
   | { item = { d_arguments = Some _ }; span }:: _ -> (field_key, error_expr error_marker map_loc span "bsDecoder must be given 'fn' argument")
+(* =======
+       [(Nolabel, parser_expr)])
+  | { item = { d_arguments = None }; span }:: _ -> raise_error map_loc span "bsDecoder must be given 'fn' argument"
+  | { item = { d_arguments = Some _ }; span }:: _ -> raise_error map_loc span "bsDecoder must be given 'fn' argument"
+>>>>>>> Stashed changes *)
 
 and unify_selection error_marker map_loc schema ty selection = match selection with
   | Field field_span -> unify_field error_marker map_loc field_span ty schema
@@ -254,7 +264,7 @@ and unify_selection_set error_marker as_record map_loc span schema ty selection_
   | Some { item } -> let loc = map_loc span in
     let fields = List.map (unify_selection error_marker map_loc schema ty) item in
     let ctor_result_type = (List.mapi 
-                              (fun i (key, _) -> (Longident.last key.txt, [], Ast_helper.Typ.var ~loc ("a" ^ (string_of_int i)))) 
+                              (fun i (key, _) -> (Longident.last key.txt, [], Ast_helper.Typ.var ~loc ("a" ^ (string_of_int i))))
                               fields)
     in
     let rec make_obj_constructor_fn i = function
