@@ -92,28 +92,28 @@ let mapper argv =
                 let error_marker = { Generator_utils.has_error = false } in
                 let parse_fn = Result_decoder.unify_document_schema error_marker (add_loc delimLength loc) schema document in
                 if error_marker.Generator_utils.has_error then
-                  Mod.mk ~loc
+                  Mod.mk
                     (Pmod_structure [
-                        [%stri exception Graphql_error];
-                        [%stri let parse = fun value -> [%e parse_fn]];
+                        [%stri exception Graphql_error of string];
+                        [%stri let parse = fun value -> [%e Output_bucklescript_decoder.generate_decoder parse_fn]];
                       ])
                 else
                   let (rec_flag, encoders) = 
                     Variable_encoder.generate_encoders schema loc (add_loc delimLength loc) document in
                   let reprinted_query = Graphql_printer.print_document schema document in
                   let make_fn, make_with_variables_fn = Unifier.make_make_fun (add_loc delimLength loc) schema document in
-                  Mod.mk ~loc
+                  Mod.mk
                     (Pmod_structure [
-                        [%stri exception Graphql_error];
+                        [%stri exception Graphql_error of string];
                         [%stri let ppx_printed_query = [%e if is_ast_output
                                  then Ast_serializer_apollo.serialize_document query document
-                                 else Exp.constant ~loc (Const_string (reprinted_query, delim))]];
+                                 else Exp.constant (Const_string (reprinted_query, delim))]];
                         [%stri let query = ppx_printed_query];
-                        [%stri let parse = fun value -> [%e parse_fn]];
+                        [%stri let parse = fun value -> [%e Output_bucklescript_decoder.generate_decoder parse_fn]];
 
                         {
                           pstr_desc = (Pstr_value (rec_flag, encoders));
-                          pstr_loc = loc
+                          pstr_loc = Location.none;
                         };
                         [%stri let make = [%e make_fn]];
                         [%stri let makeWithVariables = [%e make_with_variables_fn]];
