@@ -154,7 +154,7 @@ let ser_definition = function
       ("operation", Js.Json.string([%e match item.o_type with
         | Query -> [%expr "query"]
         | Mutation -> [%expr "mutation"]
-        | Subscription -> [%expr "subscrition"]
+        | Subscription -> [%expr "subscription"]
         ]));
       ("variableDefinitions", [%e ser_variable_definitions item.o_variable_definitions]);
       ("directives", [%e ser_directives item.o_directives]);
