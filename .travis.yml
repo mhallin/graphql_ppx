@@ -16,8 +16,8 @@ addons:
 
 before_install:
   - bash -e ci/travis_before_install.sh
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export TARGET_NAME=darwin-x64; export OCAMLBUILDFLAGS=""; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export TARGET_NAME=linux-x64; export OCAMLBUILDFLAGS="-lflags '-ccopt -static'"; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export TARGET_NAME=darwin-x64; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export TARGET_NAME=linux-x64; fi
   - eval `opam config env`
 
 before_script:
@@ -26,8 +26,8 @@ before_script:
   - OPAMYES=1 opam install graphql_ppx --deps-only
 
 script:
-  - make "OCAMLBUILDFLAGS=$OCAMLBUILDFLAGS"
-  - make test "OCAMLBUILDFLAGS=$OCAMLBUILDFLAGS"
+  - make
+  - make test
   - mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
 
 deploy:
