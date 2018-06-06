@@ -29,29 +29,35 @@ let rec unify_type as_record map_loc span ty schema (selection_set: selection li
     ] [@metaloc loc]
   | Ntr_named n -> match lookup_type schema n with
     | None -> raise_error map_loc span ("Could not find type " ^ n)
-    | Some Scalar { sm_name = "ID" } 
-    | Some Scalar { sm_name = "String" } ->
-      [%expr match Js.Json.decodeString value with
-        | None -> raise Graphql_error
-        | Some value -> (value : string)
-      ] [@metaloc loc]
-    | Some Scalar { sm_name = "Int" } ->
-      [%expr match Js.Json.decodeNumber value with
-        | None -> raise Graphql_error
-        | Some value -> int_of_float value
-      ] [@metaloc loc]
-    | Some Scalar { sm_name = "Float" } ->
-      [%expr match Js.Json.decodeNumber value with
-        | None -> raise Graphql_error
-        | Some value -> value
-      ] [@metaloc loc]
-    | Some Scalar { sm_name = "Boolean" } ->
-      [%expr match Js.Json.decodeBoolean value with
-        | None -> raise Graphql_error
-        | Some value -> value
-      ] [@metaloc loc]
-    | Some Scalar _ -> 
-      Ast_helper.(Exp.ident ~loc:loc {txt=Longident.Lident "value"; loc = loc})
+    | Some Scalar { sm_name } -> begin
+        let _ =  match selection_set with
+          | None -> ()
+          | Some { span } ->
+            raise_error map_loc span ("Scalar type \"" ^ sm_name ^ "\" can not have a sub-selection") in
+        match sm_name with 
+        | "ID" | "String" ->
+          [%expr match Js.Json.decodeString value with
+            | None -> raise Graphql_error
+            | Some value -> (value : string)
+          ] [@metaloc loc]
+        | "Int" ->
+          [%expr match Js.Json.decodeNumber value with
+            | None -> raise Graphql_error
+            | Some value -> int_of_float value
+          ] [@metaloc loc]
+        | "Float" ->
+          [%expr match Js.Json.decodeNumber value with
+            | None -> raise Graphql_error
+            | Some value -> value
+          ] [@metaloc loc]
+        | "Boolean" ->
+          [%expr match Js.Json.decodeBoolean value with
+            | None -> raise Graphql_error
+            | Some value -> value
+          ] [@metaloc loc]
+        | _ -> 
+          Ast_helper.(Exp.ident ~loc:loc {txt=Longident.Lident "value"; loc = loc})
+      end
     | Some ((Object o) as ty) ->
       unify_selection_set as_record map_loc span schema ty selection_set
     | Some Enum { em_name; em_values } ->
