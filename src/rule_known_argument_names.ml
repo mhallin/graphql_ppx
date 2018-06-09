@@ -1,4 +1,4 @@
-module VisitorImpl: Traversal_utils.VisitorSig = struct
+module Visitor: Traversal_utils.VisitorSig = struct
   open Traversal_utils
   open Source_pos
   open Graphql_ast

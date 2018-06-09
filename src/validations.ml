@@ -1,6 +1,9 @@
 open Traversal_utils
 
-module AllRulesImpl = Multi_visitor.Visitor(Rule_known_argument_names.VisitorImpl)(Multi_visitor.NullVisitor)
+module AllRulesImpl = 
+  Multi_visitor.Visitor(Rule_known_argument_names.Visitor)(
+    Multi_visitor.Visitor(Rule_no_unused_variables.Visitor)(
+      Multi_visitor.NullVisitor))
 
 module AllRules = Visitor(AllRulesImpl)
 
