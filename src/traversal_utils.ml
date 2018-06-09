@@ -19,6 +19,9 @@ type ctx = {
 
 module type VisitorSig = sig
   type t
+
+  val make_self: unit -> t
+
   val enter_document: t -> ctx -> document -> unit
   val exit_document: t -> ctx -> document -> unit
 
@@ -337,7 +340,8 @@ module Visitor(V: VisitorSig) = struct
       let () = visit_fragment_definition self ctx fragment.item in
       V.exit_fragment_definition self ctx fragment
 
-  let visit_document self ctx doc =
+  let visit_document ctx doc =
+    let self = V.make_self () in
     let () = V.enter_document self ctx doc in
     let () = List.iter (visit_definition self ctx) doc in
     V.exit_document self ctx doc

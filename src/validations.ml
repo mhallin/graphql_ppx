@@ -1,5 +1,9 @@
 open Traversal_utils
 
+module AllRulesImpl = Multi_visitor.Visitor(Rule_known_argument_names.VisitorImpl)(Multi_visitor.NullVisitor)
+
+module AllRules = Visitor(AllRulesImpl)
+
 let find_fragments doc =
   let open Graphql_ast in
   let open Source_pos in
@@ -21,7 +25,7 @@ let run_validators map_loc schema document =
     input_type_literal_stack = [];
     parent_type_stack = [];
   } in
-  let () = Rule_known_argument_names.visit_document ctx document in
+  let () = AllRules.visit_document ctx document in
   match ! (ctx.errors) with
   | [] -> None
   | errs -> Some errs

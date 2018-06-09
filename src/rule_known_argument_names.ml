@@ -1,4 +1,4 @@
-module VisitorImpl = struct
+module VisitorImpl: Traversal_utils.VisitorSig = struct
   open Traversal_utils
   open Source_pos
   open Graphql_ast
@@ -12,6 +12,8 @@ module VisitorImpl = struct
 
   type t = known_args ref
   include Traversal_utils.AbstractVisitor
+
+  let make_self () = ref None
 
   let report_error ctx span pos arg_name =
     let msg = match pos with
@@ -48,8 +50,3 @@ module VisitorImpl = struct
     known_args := None
 
 end
-
-module Visitor = Traversal_utils.Visitor(VisitorImpl)
-
-let visit_document ctx doc =
-  Visitor.visit_document (ref None) ctx doc
