@@ -243,6 +243,7 @@ let parse_fragment_definition parser = Result_ext.(
     |> flat_map (fun (start_pos, name) -> match name with
         | { item = "on" } as span -> Error (Source_pos.replace span (Unexpected_token (Graphql_lexer.Name "on")))
         | _ -> Ok(start_pos, name))
+    |> flat_map (fun v -> expect parser (Graphql_lexer.Name "on") |> replace v)
     |> flat_map (fun (start_pos, name) -> expect_name parser |> map (make_t3 start_pos name))
     |> flat_map (fun (start_pos, name, type_cond) -> parse_directives parser |> map (make_t4 start_pos name type_cond))
     |> flat_map (fun (start_pos, name, type_cond, directives) ->
