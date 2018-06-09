@@ -344,5 +344,27 @@ module Visitor(V: VisitorSig) = struct
     let self = V.make_self () in
     let () = V.enter_document self ctx doc in
     let () = List.iter (visit_definition self ctx) doc in
-    V.exit_document self ctx doc
+    let () = V.exit_document self ctx doc in
+    self
 end
+
+let find_fragments doc =
+  let open Graphql_ast in
+  let open Source_pos in
+  let lookup = Hashtbl.create 1 in
+  let () = List.iter (function 
+      | Fragment fragment -> Hashtbl.add lookup fragment.item.fg_name.item fragment.item
+      | _ -> ()) doc in
+  lookup
+
+let make_context config document = {
+  map_loc = config.Generator_utils.map_loc;
+  fragments = find_fragments document;
+  schema = config.schema;
+  errors = ref([]);
+  type_stack = [];
+  type_literal_stack = [];
+  input_type_stack = [];
+  input_type_literal_stack = [];
+  parent_type_stack = [];
+}

@@ -18,3 +18,20 @@ type t =
   | Res_poly_variant_selection_set of loc * string * (string * t) list
   | Res_poly_variant_union of loc * string * (string * t) list * exhaustive_flag
   | Res_error of loc * string
+
+type mod_ =
+  | Mod_fragment of string * (string list) * bool * Graphql_ast.fragment Source_pos.spanning * t
+  | Mod_default_operation of Graphql_ast.variable_definitions Source_pos.spanning option * bool * Graphql_ast.operation Source_pos.spanning * t
+
+let res_loc = function
+  | Res_nullable (loc, _)
+  | Res_array (loc, _)
+  | Res_id loc | Res_string loc | Res_int loc | Res_float loc | Res_boolean loc | Res_raw_scalar loc
+  | Res_poly_enum (loc, _)
+  | Res_custom_decoder (loc, _, _)
+  | Res_record (loc, _, _)
+  | Res_object (loc, _, _)
+  | Res_poly_variant_selection_set (loc, _, _)
+  | Res_poly_variant_union (loc, _, _, _)
+  | Res_error (loc, _)
+  -> loc

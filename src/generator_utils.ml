@@ -20,3 +20,15 @@ let some_or o d = match o with
 
 let capitalize_ascii = String.capitalize
 let uncapitalize_ascii = String.uncapitalize
+
+type output_mode =
+  | String
+  | Apollo_AST
+
+type output_config = {
+  map_loc: Source_pos.source_position * Source_pos.source_position -> Result_structure.loc;
+  delimiter: string option;
+  output_mode: output_mode;
+  schema: Schema.schema;
+  full_document: Graphql_ast.document;
+}

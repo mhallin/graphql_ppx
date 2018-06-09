@@ -1,6 +1,7 @@
 open Graphql_ast
 open Source_pos
 open Schema
+open Generator_utils
 
 open Ast_402
 open Parsetree
@@ -91,11 +92,11 @@ let rec extract_variable_types schema acc =
     match ty with
     | None ->
       extract_variable_types schema acc t
-    | Some x when (TypeSet.exists (fun (_, y) -> Schema.compare_type_meta x y == 0) acc) ->
+    | Some x when (TypeSet.exists (fun (_, y) -> Schema.compare_type_meta x y = 0) acc) ->
       extract_variable_types schema acc t
-    | Some InputObject { iom_name } when String.compare iom_name "_QueryMeta" == 0 -> 
+    | Some InputObject { iom_name } when String.compare iom_name "_QueryMeta" = 0 -> 
       extract_variable_types schema acc t
-    | Some Object { om_name } when String.compare om_name "_QueryMeta" == 0 -> 
+    | Some Object { om_name } when String.compare om_name "_QueryMeta" = 0 -> 
       extract_variable_types schema acc t
     | Some Object x ->
       let acc = TypeSet.add (spanning, (Object x)) acc in
@@ -152,9 +153,9 @@ let rec parser_for_type schema loc type_ref =
     let type_ = lookup_type schema type_name in
     match type_ with
     | None -> raise_inconsistent_schema type_name 
-    | Some InputObject { iom_name } when String.compare iom_name "_QueryMeta" == 0 -> 
+    | Some InputObject { iom_name } when String.compare iom_name "_QueryMeta" = 0 -> 
       None
-    | Some Object { om_name } when String.compare om_name "_QueryMeta" == 0 -> 
+    | Some Object { om_name } when String.compare om_name "_QueryMeta" = 0 -> 
       None
     | Some type_ ->
       Some (
@@ -190,8 +191,8 @@ let rec list_of_fields schema loc expr fields =
               ]
             ))))
 
-let generate_encoder schema map_loc (spanning, x) =
-  let loc = map_loc spanning.span in
+let generate_encoder config (spanning, x) =
+  let loc = config.map_loc spanning.span in
   let make_value_binding = make_value_binding loc in
   let make_pattern = make_pattern loc in
   let make_value_expression = make_value_expression loc in
@@ -247,12 +248,12 @@ let generate_encoder schema map_loc (spanning, x) =
     | Object { om_fields } -> 
       fun expr ->
         apply "Js.Json.object_" (
-          apply "Js.Dict.fromList" (list_of_fields schema loc expr (List.map to_argument_meta om_fields))
+          apply "Js.Dict.fromList" (list_of_fields config.schema loc expr (List.map to_argument_meta om_fields))
         )
     | InputObject { iom_input_fields } -> 
       fun expr ->
         apply "Js.Json.object_" (
-          apply "Js.Dict.fromList" (list_of_fields schema loc expr iom_input_fields)
+          apply "Js.Dict.fromList" (list_of_fields config.schema loc expr iom_input_fields)
         )
     | Interface _ -> raise @@ Invalid_argument "Unsupported variable type: Interface"
     | Union _ -> raise @@ Invalid_argument "Unsupported variable type: Union"
@@ -357,18 +358,14 @@ let rec determine_is_recursive (_, type_) prev =
   | Interface _
   | Union _ -> Recursive
 
-let generate_encoders schema loc map_loc = 
-  function
-  | [Operation { 
-      item = { o_variable_definitions = Some { item } }
-    }] -> List.map (fun (spanning, {vd_type = variable_type}) -> 
-      (spanning, to_schema_type_ref variable_type.item)
-    ) item 
-          |> extract_variable_types schema TypeSet.empty
-          |> (fun types -> (
-                TypeSet.fold determine_is_recursive types Nonrecursive, 
-                TypeSet.fold (fun element t -> (generate_encoder schema map_loc element)::t) types [])
-            )
-          |> (fun (rec_flag, encoders) -> (rec_flag, (optional_encoder loc)::(array_encoder loc)::encoders))
-  | [Operation { item = { o_variable_definitions = None }}] -> (Nonrecursive, [])
-  | _ -> raise @@ Unimplemented "variables on other than singular queries/mutations" 
+let generate_encoders config loc = function
+  | Some { item } ->
+    List.map
+      (fun (spanning, {vd_type = variable_type}) -> (spanning, to_schema_type_ref variable_type.item)) item 
+    |> extract_variable_types config.schema TypeSet.empty
+    |> (fun types -> (
+          TypeSet.fold determine_is_recursive types Nonrecursive, 
+          TypeSet.fold (fun element t -> (generate_encoder config element)::t) types [])
+      )
+    |> (fun (rec_flag, encoders) -> (rec_flag, (optional_encoder loc)::(array_encoder loc)::encoders))
+  | None -> (Nonrecursive, [])

@@ -147,7 +147,7 @@ let scan_name lexer =
 let scan_ellipsis lexer =
   let start_pos = lexer.position in
   let rec scan_loop i =
-    if i == 0 then Ok (start_end start_pos lexer.position Ellipsis)
+    if i = 0 then Ok (start_end start_pos lexer.position Ellipsis)
     else match next_char lexer with
       | Some (_, '.') -> scan_loop (i - 1)
       | Some (_, ch) -> Error (single_width lexer.position (Unexpected_character ch))

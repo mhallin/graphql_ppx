@@ -148,7 +148,7 @@ let make_type_meta _ v =
 let make_type_map type_array =
   let open Yojson.Basic.Util in
   let rec type_map_loop i type_map =
-    if i == Array.length type_array then
+    if i = Array.length type_array then
       type_map
     else begin
       let () = Hashtbl.add type_map (type_array.(i) |> member "name" |> to_string) type_array.(i) in

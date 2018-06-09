@@ -1,6 +1,7 @@
 open Graphql_ast
 open Source_pos
 open Schema
+open Generator_utils
 
 open Ast_402
 open Parsetree
@@ -11,7 +12,7 @@ open Type_utils
 exception Unimplemented of string
 
 
-let rec make_make_fun map_loc schema document =
+let rec make_make_fun config variable_defs =
   let make_make_triple loc variables =
     Ast_helper.Exp.extension ~loc:loc
       ({txt = "bs.obj"; loc = loc},
@@ -21,11 +22,11 @@ let rec make_make_fun map_loc schema document =
            variables = [%e variables]; 
            parse = parse; }] [@metaloc loc]
        ]) in
-  match document with
-  | [Operation { item = { o_variable_definitions = Some { item; span } }}] -> begin
+  match variable_defs with
+  | Some { item; span } -> begin
       let rec make_labelled_function defs body = match defs with
-        | [] -> [%expr fun () -> [%e body]] [@metaloc map_loc span]
-        | (name, def) :: tl -> let name_loc = map_loc name.span in
+        | [] -> [%expr fun () -> [%e body]] [@metaloc config.map_loc span]
+        | (name, def) :: tl -> let name_loc = config.map_loc name.span in
           Ast_helper.(
             Exp.fun_ 
               ~loc:name_loc
@@ -39,7 +40,7 @@ let rec make_make_fun map_loc schema document =
       let make_object_function defs body =
         let rec generate_bindings defs = match defs with
           | [] -> body
-          | (name, def) :: tl -> let name_loc = map_loc name.span in
+          | (name, def) :: tl -> let name_loc = config.map_loc name.span in
             Ast_helper.Exp.let_ ~loc:name_loc Nonrecursive [
               Ast_helper.(Vb.mk
                 ~loc:name_loc
@@ -52,22 +53,23 @@ let rec make_make_fun map_loc schema document =
       let rec make_body defs = match defs with
         | (name, def) :: tl -> 
           let parser_ = (
-            Variable_encoder.parser_for_type schema (map_loc name.span) (
+            Variable_encoder.parser_for_type config.schema (config.map_loc name.span) (
               to_native_type_ref (to_schema_type_ref def.vd_type.item)
             )
           ) in 
           begin match parser_ with
             | None -> make_body tl
             | Some parser_ ->
+              let loc = config.map_loc name.span in
               [%expr
                 (
-                  [%e Ast_helper.Exp.constant ~loc:(map_loc name.span) (Const_string (name.item, None))],
-                  [%e parser_] [%e Ast_helper.Exp.ident ~loc:(map_loc name.span) {txt=Longident.parse name.item; loc=map_loc name.span}]
-                ) :: [%e make_body tl]] [@metaloc map_loc name.span]
+                  [%e Ast_helper.Exp.constant ~loc (Const_string (name.item, None))],
+                  [%e parser_] [%e Ast_helper.Exp.ident ~loc {txt=Longident.parse name.item; loc}]
+                ) :: [%e make_body tl]] [@metaloc loc]
           end
-        | [] -> [%expr []] [@metaloc map_loc span]
+        | [] -> [%expr []] [@metaloc config.map_loc span]
       in
-      let loc = map_loc span in
+      let loc = config.map_loc span in
       let variable_ctor_body = 
         [%expr Js.Json.object_ (Js.Dict.fromList [%e make_body item])] [@metaloc loc]
       in
@@ -76,11 +78,9 @@ let rec make_make_fun map_loc schema document =
         make_object_function item (make_make_triple loc variable_ctor_body)
       )
     end
-  | [Operation { item = { o_variable_definitions = None }; span }] -> begin
-      let loc = map_loc span in
+  | None -> begin
       (
-        [%expr fun () -> [%e make_make_triple loc [%expr Js.Json.null]]],
-        [%expr fun (_: < > Js.t) -> [%e make_make_triple loc [%expr Js.Json.null]]]
+        [%expr fun () -> [%e make_make_triple Location.none [%expr Js.Json.null]]],
+        [%expr fun (_: < > Js.t) -> [%e make_make_triple Location.none [%expr Js.Json.null]]]
       )
     end
-  | _ -> raise @@ Unimplemented "variables on other than singular queries/mutations"

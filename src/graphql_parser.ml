@@ -27,7 +27,7 @@ let next parser = match parser.tokens with
 
 let expect parser token =
   match next parser with
-  | Ok span when span.item == token -> Ok span
+  | Ok span when span.item = token -> Ok span
   | Ok span -> Error (replace span (Unexpected_token span.item))
   | x -> x
 
@@ -40,8 +40,8 @@ let expect_name parser =
 
 let skip parser token =
   match peek parser with
-  | span when span.item == token -> map_ok (fun x -> Some x) (next parser)
-  | span when span.item == Graphql_lexer.End_of_file -> Error (zero_width (start_pos span) Unexpected_end_of_file)
+  | span when span.item = token -> map_ok (fun x -> Some x) (next parser)
+  | span when span.item = Graphql_lexer.End_of_file -> Error (zero_width (start_pos span) Unexpected_end_of_file)
   | _ -> Ok None
 
 let delimited_list parser opening sub_parser closing =

@@ -97,3 +97,7 @@ type NestedObject {
 
     field: String!
 }
+
+type WithArgField {
+    argField(arg1: String, arg2: Int): NestedObject
+}
