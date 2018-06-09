@@ -1,10 +1,6 @@
 open Result
 open Source_pos
 
-let map_ok f r = match r with
-  | Ok x -> Ok (f x)
-  | Error e -> Error e
-
 type parser = {
   mutable tokens: Graphql_lexer.token spanning list;
 }
@@ -40,7 +36,7 @@ let expect_name parser =
 
 let skip parser token =
   match peek parser with
-  | span when span.item = token -> map_ok (fun x -> Some x) (next parser)
+  | span when span.item = token -> Result_ext.map (fun x -> Some x) (next parser)
   | span when span.item = Graphql_lexer.End_of_file -> Error (zero_width (start_pos span) Unexpected_end_of_file)
   | _ -> Ok None
 
