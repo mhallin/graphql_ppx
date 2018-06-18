@@ -142,6 +142,11 @@ and unify_selection error_marker config ty selection = match selection with
 
 and unify_selection_set error_marker as_record config span ty selection_set = match selection_set with
   | None -> make_error error_marker config.map_loc span "Must select subfields on objects"
+  | Some { item = [ FragmentSpread { item } ] } ->
+    if as_record then
+      make_error error_marker config.map_loc span "@bsRecord can not be used with fragment spreads, place @bsRecord on the fragment definition instead"
+    else
+      Res_solo_fragment_spread (config.map_loc span, item.fs_name.item)
   | Some { item } when as_record ->
     Res_record (config.map_loc span, type_name ty, List.map (unify_selection error_marker config ty) item)
   | Some { item } ->

@@ -34,6 +34,21 @@ let expect_name parser =
   | Ok span -> Error (map (fun t -> Unexpected_token t) span)
   | Error e -> Error e
 
+let expect_dotted_name parser =
+  let rec loop start_pos end_pos acc = let () = Printf.printf "In dotted loop: acc = %s\n" acc in match next parser with
+    | Ok { item = Graphql_lexer.Name name; span = _, end_pos } ->
+      let acc = acc ^ name in
+      begin match peek parser with
+        | { item = Graphql_lexer.Dot; span = _, end_pos } -> let _ = next parser in loop start_pos end_pos (acc ^ ".")
+        | _ -> Ok (start_end start_pos end_pos acc)
+      end 
+    | Ok ({ item = Graphql_lexer.End_of_file } as span) -> Error (replace span Unexpected_end_of_file)
+    | Ok span -> Error (map (fun t -> Unexpected_token t) span)
+    | Error e -> Error e
+  in
+  let { span = start_pos, end_pos } = peek parser in
+  loop start_pos end_pos ""
+
 let skip parser token =
   match peek parser with
   | span when span.item = token -> Result_ext.map (fun x -> Some x) (next parser)
@@ -49,8 +64,8 @@ let delimited_list parser opening sub_parser closing =
       | Ok (Some { span = (_, end_pos) }) -> Ok (start_end start_pos end_pos (List.rev acc))
       | _ ->
         match sub_parser parser with
-          | Ok span -> scanner (span :: acc)
-          | Error e -> Error e
+        | Ok span -> scanner (span :: acc)
+        | Error e -> Error e
     in
     scanner []
 
@@ -65,5 +80,5 @@ let delimited_nonempty_list parser opening sub_parser closing =
         | Error e -> Error e
         | Ok Some { span = (_, end_pos) } -> Ok (start_end start_pos end_pos (List.rev (span :: acc)))
         | Ok None -> scanner (span :: acc)
-  in
-  scanner []
+    in
+    scanner []

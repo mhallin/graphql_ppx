@@ -5,8 +5,9 @@ module Fragments: {
       nullableOfNonNullable : option(array(string)),
     });
 
-    let make: Js.t({ .. }) => Js.Json.t => t;
     let query: string;
+    let name: string;
+    let parse: Js.Json.t => t;
   };
 
   module Vars: {
@@ -18,7 +19,8 @@ module Fragments: {
       })),
     });
 
-    let make: (Js.t({ .. obj: unit }), Js.Json.t) => t;
     let query: string;
+    let name: string;
+    let parse: Js.Json.t => t;
   };
 }

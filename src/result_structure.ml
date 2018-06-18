@@ -17,6 +17,7 @@ type t =
   | Res_object of loc * string * (string * t) list
   | Res_poly_variant_selection_set of loc * string * (string * t) list
   | Res_poly_variant_union of loc * string * (string * t) list * exhaustive_flag
+  | Res_solo_fragment_spread of loc * string
   | Res_error of loc * string
 
 type mod_ =
@@ -33,5 +34,6 @@ let res_loc = function
   | Res_object (loc, _, _)
   | Res_poly_variant_selection_set (loc, _, _)
   | Res_poly_variant_union (loc, _, _, _)
+  | Res_solo_fragment_spread (loc, _)
   | Res_error (loc, _)
   -> loc

@@ -27,6 +27,7 @@ type token =
   | Curly_open
   | Curly_close
   | Ellipsis
+  | Dot
   | Colon
   | Equals
   | At
@@ -47,6 +48,7 @@ let string_of_token t = match t with
   | Curly_open -> "{"
   | Curly_close -> "}"
   | Ellipsis -> "..."
+  | Dot -> "."
   | Colon -> ":"
   | Equals -> "="
   | At -> "@"
@@ -144,13 +146,14 @@ let scan_name lexer =
           lexer.position
           (Name (String.sub lexer.source start_idx (endIdx - start_idx + 1))))
 
-let scan_ellipsis lexer =
+let scan_ellipsis_or_dot lexer =
   let start_pos = lexer.position in
   let rec scan_loop i =
     if i = 0 then Ok (start_end start_pos lexer.position Ellipsis)
-    else match next_char lexer with
-      | Some (_, '.') -> scan_loop (i - 1)
-      | Some (_, ch) -> Error (single_width lexer.position (Unexpected_character ch))
+    else match peek_char lexer with
+      | Some (_, '.') -> let _ = next_char lexer in scan_loop (i - 1)
+      | Some (_, ch) when i = 2 -> Ok (start_end start_pos lexer.position Dot)
+      | Some (_, ch) -> let _ = next_char lexer in Error (single_width lexer.position (Unexpected_character ch))
       | None -> Error (zero_width lexer.position Unexpected_end_of_file)
   in scan_loop 3
 
@@ -264,7 +267,7 @@ let scan_single_token lexer =
         | Some '=' -> Ok (emit_single_char lexer Equals)
         | Some '@' -> Ok (emit_single_char lexer At)
         | Some '|' -> Ok (emit_single_char lexer Pipe)
-        | Some '.' -> scan_ellipsis lexer
+        | Some '.' -> scan_ellipsis_or_dot lexer
         | Some '"' -> scan_string lexer
         | Some ch when is_number_start ch -> scan_number lexer
         | Some ch when is_name_start ch -> scan_name lexer

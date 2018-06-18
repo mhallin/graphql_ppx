@@ -82,7 +82,7 @@ let generate_fragment_module config name required_variables has_error fragment r
         make_printed_query config [Graphql_ast.Fragment fragment];
         [
           [%stri let parse = fun value -> [%e parse_fn]];
-          [%stri let make = fun (_vars: [%t variable_obj_type]) -> parse ]
+          [%stri let name = [%e Ast_helper.Exp.constant (Const_string (name, None))]];
         ];
         ret_type_magic
       ]

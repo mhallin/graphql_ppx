@@ -10,3 +10,11 @@ module Fragments = [%graphql {|
     }
   }
 |}];
+
+module MyQuery = [%graphql {|
+  query {
+    lists {
+      ...Fragments.ListFragment
+    }
+  }
+|}]

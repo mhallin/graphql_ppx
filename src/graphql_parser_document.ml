@@ -164,7 +164,7 @@ and parse_fragment parser = Result_ext.(
                               }))
 
       | { item = Graphql_lexer.Name _ } -> 
-        expect_name parser
+        expect_dotted_name parser
         |> flat_map (fun name -> parse_directives parser |> map (make_t2 name))
         |> map (fun (name, directives) -> 
             FragmentSpread (start_end start_pos (match last directives with | Some s -> (end_pos s) | None -> (end_pos name))

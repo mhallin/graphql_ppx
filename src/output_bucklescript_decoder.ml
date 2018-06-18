@@ -56,6 +56,10 @@ let generate_poly_enum_decoder loc enum_meta =
         ", got " ^ (Js.Json.stringify value)))
     | Some value -> ([%e match_expr]: [%t enum_ty])]
 
+let generate_solo_fragment_spread loc name =
+  let ident = Ast_helper.Exp.ident { loc = loc; txt = Longident.parse (name ^ ".parse") } in
+  [%expr [%e ident] value]
+
 let generate_error loc message =
   let ext = Ast_mapper.extension_of_error (Location.error ~loc message) in
   [%expr let _value = value in [%e Ast_helper.Exp.extension ~loc ext]]
@@ -75,6 +79,7 @@ let rec generate_decoder = function
   | Res_object (loc, name, fields) -> generate_object_decoder loc name fields
   | Res_poly_variant_selection_set (loc, name, fields) -> generate_poly_variant_selection_set loc name fields
   | Res_poly_variant_union (loc, name, fragments, exhaustive) -> generate_poly_variant_union loc name fragments exhaustive
+  | Res_solo_fragment_spread (loc, name) -> generate_solo_fragment_spread loc name
   | Res_error (loc, message) -> generate_error loc message
 
 and generate_nullable_decoder loc inner =
