@@ -103,8 +103,11 @@ let print_variable_definitions defs =
   "(" ^ (List.map print_variable_definition defs |> String.concat ", ") ^ ")"
 
 let print_operation schema op =
-  let ty_name = match op.o_type with | Query -> schema.meta.sm_query_type | Mutation -> Option.unsafe_unwrap schema.meta.sm_mutation_type in
-  (match op.o_type with | Query -> "query " | Mutation -> "mutation ") ^
+  let ty_name = match op.o_type with
+    | Query -> schema.meta.sm_query_type
+    | Mutation -> Option.unsafe_unwrap schema.meta.sm_mutation_type
+    | Subscription -> Option.unsafe_unwrap schema.meta.sm_subscription_type in
+  (match op.o_type with | Query -> "query " | Mutation -> "mutation " | Subscription -> "subscription ") ^
   (match op.o_name with | Some { item } -> item | None -> "") ^
   (match op.o_variable_definitions with | Some { item } -> print_variable_definitions item | None -> "") ^
   (print_directives op.o_directives) ^
