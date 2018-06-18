@@ -100,6 +100,9 @@ let query_type s = Hashtbl.find s.type_map s.meta.sm_query_type
 let mutation_type s = match s.meta.sm_mutation_type with
   | Some n -> Some (Hashtbl.find s.type_map n)
   | None -> None 
+let subscription_type s = match s.meta.sm_subscription_type with
+  | Some n -> Some (Hashtbl.find s.type_map n)
+  | None -> None
 
 exception Invalid_type of string
 exception Inconsistent_schema of string

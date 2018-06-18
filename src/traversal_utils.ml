@@ -327,6 +327,7 @@ module Visitor(V: VisitorSig) = struct
     let def_type = Schema.NonNull(Schema.Named(match def with
         | Operation { item = { o_type = Query } } -> Schema.query_type ctx.schema |> Schema.type_name
         | Operation { item = { o_type = Mutation } } -> Schema.mutation_type ctx.schema |> Option.unsafe_unwrap |> Schema.type_name
+        | Operation { item = { o_type = Subscription } } -> Schema.subscription_type ctx.schema |> Option.unsafe_unwrap |> Schema.type_name
         | Fragment { item = { fg_type_condition = { item } } } -> item))
     in
     let ctx = Context.push_type ctx (Some def_type) in

@@ -198,6 +198,7 @@ let parse_operation_type parser = match next parser with
   | Error e -> Error e
   | Ok ({ item = Graphql_lexer.Name "query" } as span) -> Ok (replace span Query)
   | Ok ({ item = Graphql_lexer.Name "mutation"} as span) -> Ok (replace span Mutation)
+  | Ok ({ item = Graphql_lexer.Name "subscription"} as span) -> Ok (replace span Subscription)
   | Ok span -> Error (map (fun t -> Unexpected_token t) span)
 
 let parse_operation_definition parser = Result_ext.(
@@ -261,8 +262,9 @@ let parse_fragment_definition parser = Result_ext.(
 let parse_definition parser = Result_ext.(
     match peek parser with
     | { item = Graphql_lexer.Curly_open }
-    | {item = Graphql_lexer.Name "query" }
-    | { item = Graphql_lexer.Name "mutation"} ->
+    | { item = Graphql_lexer.Name "query" }
+    | { item = Graphql_lexer.Name "mutation" } 
+    | { item = Graphql_lexer.Name "subscription" }->
       parse_operation_definition parser |> map (fun def -> Operation def)
 
     | { item = Graphql_lexer.Name "fragment" } ->

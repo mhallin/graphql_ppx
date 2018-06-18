@@ -151,7 +151,11 @@ let ser_definition = function
   | Operation { item } -> [%expr Js.Json.object_(Js.Dict.fromArray([|
       ("kind", Js.Json.string("OperationDefinition"));
       ("name", [%e ser_optional ser_name item.o_name]);
-      ("operation", Js.Json.string([%e match item.o_type with | Query -> [%expr "query"] | Mutation -> [%expr "mutation"]]));
+      ("operation", Js.Json.string([%e match item.o_type with
+        | Query -> [%expr "query"]
+        | Mutation -> [%expr "mutation"]
+        | Subscription -> [%expr "subscrition"]
+        ]));
       ("variableDefinitions", [%e ser_variable_definitions item.o_variable_definitions]);
       ("directives", [%e ser_directives item.o_directives]);
       ("selectionSet", [%e ser_selection_set item.o_selection_set]);

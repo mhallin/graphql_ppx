@@ -156,11 +156,19 @@ let unify_operation error_marker config = function
   | { item = { o_type = Query; o_selection_set; o_variable_definitions }; span }
     -> unify_selection_set error_marker false config span (query_type config.schema) (Some o_selection_set)
   | { item = { o_type = Mutation; o_selection_set; o_variable_definitions }; span } 
-    -> match mutation_type config.schema with
-    | Some mutation_type -> 
-      unify_selection_set error_marker false config span mutation_type (Some o_selection_set)
-    | None ->
-      make_error error_marker config.map_loc span "This schema does not contain any mutations"
+    -> begin match mutation_type config.schema with
+        | Some mutation_type -> 
+          unify_selection_set error_marker false config span mutation_type (Some o_selection_set)
+        | None ->
+          make_error error_marker config.map_loc span "This schema does not contain any mutations"
+      end
+  | { item = { o_type = Subscription; o_selection_set; o_variable_definitions }; span }
+    -> begin match subscription_type config.schema with
+        | Some subscription_type ->
+          unify_selection_set error_marker false config span subscription_type (Some o_selection_set)
+        | None->
+          make_error error_marker config.map_loc span "This schema does not contain any subscriptions"
+      end
 
 let rec unify_document_schema config document =
   let error_marker = { Generator_utils.has_error = false } in

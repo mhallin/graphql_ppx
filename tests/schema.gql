@@ -1,6 +1,7 @@
 schema {
     query: Query
     mutation: Mutation
+    subscription: Subscription
 }
 
 type Query {
@@ -19,6 +20,10 @@ type Query {
 
 type Mutation {
     mutationWithError: MutationWithErrorResult!
+}
+
+type Subscription {
+    simpleSubscription: DogOrHuman!
 }
 
 type MutationWithErrorResult {
