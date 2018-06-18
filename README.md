@@ -353,7 +353,7 @@ Core GraphQL features that need to be implemented:
 - [ ] Selecting on interfaces
 - [X] Selecting on unions
 - [X] Input object arguments
-- [ ] Query validations
+- [ ] Query validations (only partially implemented)
 - [X] Explicit resolvers for custom scalars
 
 
