@@ -1,3 +1,5 @@
+exception Schema_file_not_found
+
 let typename_field = {
   Schema.fm_name = "__typename";
   fm_description = None;
@@ -198,8 +200,34 @@ let make_schema_meta v =
                            |> to_option (fun s -> s |> member "name" |> to_string);
   }
 
-let read_schema_file name =
-  let result = Yojson.Basic.from_file name in
+let rec find_file dir name =
+  let here_file = Filename.concat dir name in
+  print_endline ("[here_file] " ^ here_file);
+
+  if Sys.file_exists here_file then
+    let () = print_endline ("[found] "^here_file) in
+    Some here_file
+  else if Filename.dirname dir = dir then
+    None
+  else 
+    find_file (Filename.dirname dir) name
+
+let create_marshaled_schema filepath data =
+  print_endline ("[write marshaled] "^filepath);
+  let outc = open_out filepath in
+  Marshal.to_channel outc data [];
+  close_out outc
+
+let read_marshaled_schema filepath =
+  print_endline ("[read marshaled] "^filepath);
+  let file = open_in filepath in
+  let data = Marshal.from_channel file in
+  close_in file;
+  data
+
+let parse_schema filepath =
+  print_endline ("[parse raw] "^filepath);
+  let result = Yojson.Basic.from_file filepath in
   let open Yojson.Basic.Util in
   let open Schema in
   let schema = result |> member "data" |> member "__schema" in
@@ -208,3 +236,18 @@ let read_schema_file name =
     type_map = schema |> member "types" |> to_list |> Array.of_list |> make_type_map;
     directive_map = schema |> member "directives" |> to_list |> Array.of_list |> make_directive_map;
   }
+
+let get_schema dir name = lazy (
+  match find_file dir (name^".marshaled") with 
+    | Some filepath -> read_marshaled_schema filepath
+    | None -> match find_file dir name with
+        | Some filepath -> 
+          let raw_schema = parse_schema filepath in
+          create_marshaled_schema (filepath^".marshaled") raw_schema;
+          print_endline ("[parse completed] ");
+          raw_schema
+        | None -> raise Schema_file_not_found
+      
+)
+
+

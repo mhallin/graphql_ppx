@@ -38,20 +38,24 @@ let fmt_parse_err err =
   | Unexpected_end_of_file -> "Unexpected end of query"
   | Lexer_error err -> fmt_lex_err err
 
-let rec find_schema_file dir =
-  let here_file = Filename.concat dir "graphql_schema.json" in
-  if Sys.file_exists here_file then
-    Some here_file
-  else if Filename.dirname dir = dir then
-    None
-  else 
-    find_schema_file (Filename.dirname dir)
-
 let make_error_expr loc message =
   let ext = Ast_mapper.extension_of_error (Location.error ~loc message) in
   Ast_helper.Exp.extension ~loc ext
 
-exception Schema_file_not_found
+let is_prefixed prefix str =
+  let i = 0 in
+  let len = String.length prefix in
+  let j = ref 0 in
+  while !j < len && String.unsafe_get prefix !j =
+                    String.unsafe_get str (i + !j) do
+    incr j
+  done;
+  (!j = len)
+
+let drop_prefix prefix str =
+  let len = String.length prefix in
+  let rest = (String.length str) - len in
+  String.sub str len rest
 
 let mapper argv =
   let open Ast_402 in
@@ -63,14 +67,16 @@ let mapper argv =
   let open Location in
   let open Asttypes in
 
-  let schema = match find_schema_file (Sys.getcwd ()) with
-    | Some filename -> Read_schema.read_schema_file filename
-    | None -> raise Schema_file_not_found
-  in
-
   let is_ast_output = match List.find ((=) "-ast-out") argv with
     | _ -> true
     | exception Not_found -> false
+  in
+
+  let here_dir = Sys.getcwd() in
+
+  let here_scheme_path = match List.find (is_prefixed "-path=") argv with
+    | arg -> drop_prefix "-path=" arg
+    | exception Not_found -> "graphql_schema.json"
   in
 
   let module_expr mapper mexpr = begin
@@ -98,7 +104,8 @@ let mapper argv =
                   delimiter = delim;
                   output_mode = if is_ast_output then Generator_utils.Apollo_AST else Generator_utils.String;
                   full_document = document;
-                  schema = schema;
+                  (*  the only call site of scheme, make it lazy! *)
+                  schema = Lazy.force (Read_schema.get_schema here_dir here_scheme_path);
                 } in
                 match Validations.run_validators config document with
                 | Some errs ->
