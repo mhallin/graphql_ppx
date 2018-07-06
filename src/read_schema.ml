@@ -212,22 +212,17 @@ let rec find_file dir name =
   else 
     find_file (Filename.dirname dir) name
 
-let create_marshaled_schema filepath data =
-  print_endline ("[write marshaled] "^filepath);
-  let outc = open_out filepath in
-  Marshal.to_channel outc data [];
-  close_out outc
+let get_ppx_cache_path suffix file = 
+  let dir = (Filename.dirname file) in
+  let name = ("."^(Filename.basename file)^suffix) in
+  Filename.concat dir name
 
-let read_marshaled_schema filepath =
-  print_endline ("[read marshaled] "^filepath);
-  let file = open_in filepath in
-  let data = Marshal.from_channel file in
-  close_in file;
-  data
+let get_cache_path = get_ppx_cache_path ".cache"
+let get_hash_path = get_ppx_cache_path ".hash"
 
-let parse_schema filepath =
-  print_endline ("[parse raw] "^filepath);
-  let result = Yojson.Basic.from_file filepath in
+let parse_json_schema json_schema =
+  print_endline ("[parse json schema] "^json_schema);
+  let result = Yojson.Basic.from_file json_schema in
   let open Yojson.Basic.Util in
   let open Schema in
   let schema = result |> member "data" |> member "__schema" in
@@ -237,17 +232,52 @@ let parse_schema filepath =
     directive_map = schema |> member "directives" |> to_list |> Array.of_list |> make_directive_map;
   }
 
+let create_marshaled_schema json_schema data =
+  let cache_schema = (get_cache_path json_schema) in
+  print_endline ("[write marshaled] "^cache_schema);
+  let outc = open_out cache_schema in
+  Marshal.to_channel outc data [];
+  close_out outc
+
+let build_schema json_schema = 
+  json_schema
+  |> parse_json_schema
+  |> create_marshaled_schema (json_schema)
+
+let dirty_check json_schema = 
+  Dirty_checker.(
+    make(json_schema)
+    |> set_hash_path (get_hash_path json_schema)
+    |> on_dirty (build_schema)
+    |> check
+  )
+
+let rec read_marshaled_schema json_schema =
+  let cache_schema = (get_cache_path json_schema) in
+  print_endline ("[read marshaled] "^cache_schema);
+  let file = open_in cache_schema in
+  let data = match Marshal.from_channel file with
+    | data -> data
+    | exception _ -> recovery_build json_schema
+  in
+  close_in file; data
+
+and recovery_build json_schema = 
+  let () = Sys.remove (get_cache_path json_schema) in
+  let () = Sys.remove (get_hash_path json_schema) in
+  dirty_check json_schema;
+  read_marshaled_schema (json_schema) 
+
 let get_schema dir name = lazy (
-  match find_file dir (name^".marshaled") with 
-    | Some filepath -> read_marshaled_schema filepath
-    | None -> match find_file dir name with
-        | Some filepath -> 
-          let raw_schema = parse_schema filepath in
-          create_marshaled_schema (filepath^".marshaled") raw_schema;
-          print_endline ("[parse completed] ");
-          raw_schema
-        | None -> raise Schema_file_not_found
-      
+  match find_file dir name with 
+    | None -> raise Schema_file_not_found
+    | Some json_schema -> 
+      dirty_check json_schema;
+      read_marshaled_schema (json_schema) 
 )
+
+
+
+
 
 
