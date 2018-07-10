@@ -125,10 +125,14 @@ and generate_record_decoder loc name fields =
       fields
       |> List.map (fun (field, inner) -> 
           [%expr match Js.Dict.get value [%e const_str_expr field] with
-            | None -> raise (Graphql_error (
-                "Field " ^ [%e const_str_expr field] ^
-                " on type " ^ [%e const_str_expr name] ^ " is missing"))
-            | Some value -> [%e generate_decoder inner]])
+            | Some value -> [%e generate_decoder inner]
+            | None -> [%e
+              if can_be_absent_as_field inner then
+                [%expr None ]
+              else 
+                [%expr raise (Graphql_error (
+                    "Field " ^ [%e const_str_expr field] ^
+                    " on type " ^ [%e const_str_expr name] ^ " is missing"))]]])
       |> Exp.tuple) in
 
   let record_fields = Ast_helper.(
@@ -181,9 +185,13 @@ and generate_object_decoder loc name fields =
                      (
                        key,
                        [%expr match Js.Dict.get value [%e const_str_expr key] with
-                         | None -> raise (Graphql_error ("Field " ^ [%e const_str_expr key] ^ " on type " ^ [%e const_str_expr name] ^ " is missing"))
                          | Some value -> [%e generate_decoder inner]
-                       ]
+                         | None -> [%e
+                           if can_be_absent_as_field inner then
+                             [%expr None]
+                           else 
+                             [%expr raise (Graphql_error ("Field " ^ [%e const_str_expr key] ^ " on type " ^ [%e const_str_expr name] ^ " is missing"))]
+                         ]]
                      )) fields)
                 [("", Ast_helper.Exp.construct { txt = Longident.Lident "()"; loc = Location.none} None)]
              ))

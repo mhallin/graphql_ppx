@@ -37,3 +37,7 @@ let res_loc = function
   | Res_solo_fragment_spread (loc, _)
   | Res_error (loc, _)
   -> loc
+
+let can_be_absent_as_field = function
+  | Res_nullable _ -> true
+  | _ -> false
