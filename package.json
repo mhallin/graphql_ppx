@@ -1,6 +1,6 @@
 {
   "name": "graphql_ppx",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "GraphQL PPX rewriter for Bucklescript/ReasonML",
   "main": "index.js",
   "repository": "https://github.com/mhallin/graphql_ppx",
