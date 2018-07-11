@@ -47,7 +47,7 @@ let make_printed_query config document =
   ]
 
 let generate_default_operation config variable_defs has_error operation res_structure =
-  let parse_fn = Output_bucklescript_decoder.generate_decoder res_structure in
+  let parse_fn = Output_bucklescript_decoder.generate_decoder config res_structure in
   if has_error then
     [ [%stri let parse = fun value -> [%e parse_fn]] ]
   else
@@ -69,7 +69,7 @@ let generate_default_operation config variable_defs has_error operation res_stru
     ]
 
 let generate_fragment_module config name required_variables has_error fragment res_structure =
-  let parse_fn = Output_bucklescript_decoder.generate_decoder res_structure in
+  let parse_fn = Output_bucklescript_decoder.generate_decoder config res_structure in
   let variable_names = find_variables config [Graphql_ast.Fragment fragment] |> StringSet.elements in
   let variable_fields = variable_names |> List.map (fun name ->
       (name, [], Ast_helper.Typ.constr { txt = Longident.Lident "unit"; loc = Location.none} [])) in
@@ -99,11 +99,6 @@ let generate_operation config = function
   | Mod_default_operation (vdefs, has_error, operation, structure) -> generate_default_operation config vdefs has_error operation structure
   | Mod_fragment (name, req_vars, has_error, fragment, structure) -> generate_fragment_module config name req_vars has_error fragment structure
 
-let preamble =
-  [
-    [%stri exception Graphql_error of string];
-  ]
-
 let generate_modules config operations =
   let generated = List.map (generate_operation config) operations in
-  Mod.mk (Pmod_structure (List.concat (preamble :: generated)))
+  Mod.mk (Pmod_structure (List.concat generated))

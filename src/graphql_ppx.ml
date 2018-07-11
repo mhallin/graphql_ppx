@@ -68,9 +68,18 @@ let mapper argv =
     | None -> raise Schema_file_not_found
   in
 
-  let is_ast_output = match List.find ((=) "-ast-out") argv with
-    | _ -> true
-    | exception Not_found -> false
+  let output_mode = match List.find ((=) "-ast-out") argv with
+    | _ -> Generator_utils.Apollo_AST
+    | exception Not_found -> Generator_utils.String
+  in
+
+  let verbose_error_handling = match List.find ((=) "-o") argv with
+    | _ -> false
+    | exception Not_found -> begin match Sys.getenv "NODE_ENV" with
+        | "production" -> false
+        | _ -> true
+        | exception Not_found -> true
+      end
   in
 
   let module_expr mapper mexpr = begin
@@ -96,9 +105,10 @@ let mapper argv =
                 let config = {
                   Generator_utils.map_loc = add_loc delimLength loc;
                   delimiter = delim;
-                  output_mode = if is_ast_output then Generator_utils.Apollo_AST else Generator_utils.String;
+                  output_mode;
                   full_document = document;
                   schema = schema;
+                  verbose_error_handling;
                 } in
                 match Validations.run_validators config document with
                 | Some errs ->

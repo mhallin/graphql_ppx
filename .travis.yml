@@ -28,6 +28,7 @@ before_script:
 script:
   - make
   - make test
+  - NODE_ENV=production make test
   - mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
 
 deploy:
