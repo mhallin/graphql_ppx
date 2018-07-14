@@ -9,5 +9,6 @@
 /lib
 /ppx
 /graphql_ppx.*
+dune.flags
 jbuild.flags
 .merlin

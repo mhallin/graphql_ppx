@@ -1,0 +1,3 @@
+(alias
+ (name graphql_ppx)
+ (deps src/graphql_ppx.exe))
