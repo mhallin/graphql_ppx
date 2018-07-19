@@ -2,7 +2,7 @@ DUNE?=dune
 
 OS:=$(shell uname -s)
 
-build: src/dune.flags
+build:
 	$(DUNE) build @graphql_ppx
 	cp _build/default/src/graphql_ppx.exe .
 
@@ -13,14 +13,6 @@ test: build tests/graphql_schema.json
 
 tests/graphql_schema.json: tests/schema.gql
 	node ./node_modules/gql-tools/cli/gqlschema.js -o tests/graphql_schema.json tests/schema.gql
-
-ifeq ($(OS),Linux)
-src/dune.flags:
-	echo '(-ccopt -static)' > $@
-else
-src/dune.flags:
-	echo '()' > $@
-endif
 
 clean:
 	$(DUNE) clean
