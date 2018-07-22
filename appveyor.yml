@@ -13,6 +13,7 @@ environment:
       REVDEPS: false
       IS_GRAPHQL_PPX_CI: true
       TARGET_PLATFORM: win-x64
+      SKIP_APOLLO_TESTS: true
 
     - FORK_USER: ocaml
       FORK_BRANCH: master
@@ -24,6 +25,7 @@ environment:
       REVDEPS: false
       IS_GRAPHQL_PPX_CI: true
       TARGET_PLATFORM: win-x86
+      SKIP_APOLLO_TESTS: true
 
 install:
   - ps: Install-Product node LTS
