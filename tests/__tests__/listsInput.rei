@@ -22,4 +22,6 @@ module MyQuery: {
         nonNullableOfNonNullable: array(string),
       }),
     }) => Js.t({ . parse: Js.Json.t => t, query: string, variables: Js.Json.t });
+
+  let query: string;
 };

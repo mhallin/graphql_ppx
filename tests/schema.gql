@@ -11,6 +11,7 @@ type Query {
 
     scalarsInput(arg: VariousScalarsInput!): String!
     listsInput(arg: ListsInput!): String!
+    recursiveInput(arg: RecursiveInput!): String!
     argNamedQuery(query: Int!): Int!
 
     dogOrHuman: DogOrHuman!
@@ -84,6 +85,11 @@ input ListsInput {
     nullableOfNonNullable: [String!]
     nonNullableOfNullable: [String]!
     nonNullableOfNonNullable: [String!]!
+}
+
+input RecursiveInput {
+    otherField: String
+    inner: RecursiveInput
 }
 
 type Dog {

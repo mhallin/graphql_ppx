@@ -52,7 +52,7 @@ let generate_default_operation config variable_defs has_error operation res_stru
     [ [%stri let parse = fun value -> [%e parse_fn]] ]
   else
     let (rec_flag, encoders) = 
-      Variable_encoder.generate_encoders config (Result_structure.res_loc res_structure) variable_defs in
+      Output_bucklescript_encoder.generate_encoders config (Result_structure.res_loc res_structure) variable_defs in
     let make_fn, make_with_variables_fn = Unifier.make_make_fun config variable_defs in
     List.concat [
       make_printed_query config [Graphql_ast.Operation operation];

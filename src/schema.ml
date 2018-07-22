@@ -163,14 +163,13 @@ let all_enums schema = Hashtbl.fold (fun _ v acc ->
     | Enum e -> e :: acc
     | _ -> acc) schema.type_map []
 
-let extract_name_from_type_meta = 
-  function 
+let extract_name_from_type_meta = function
   | Scalar { sm_name = x }
-  | Object { om_name = x } 
-  | Enum { em_name = x } 
-  | Interface { im_name = x }  
-  | Union { um_name = x } 
-  | InputObject {iom_name = x } -> x 
+  | Object { om_name = x }
+  | Enum { em_name = x }
+  | Interface { im_name = x }
+  | Union { um_name = x }
+  | InputObject {iom_name = x } -> x
 
 let compare_type_meta x y =
   String.compare (extract_name_from_type_meta x) (extract_name_from_type_meta y)
