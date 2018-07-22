@@ -97,7 +97,7 @@ and unify_variant error_marker config span ty selection_set =
                     | Ntr_list _ | Ntr_named _ -> raise_error config.map_loc span "Variant field must only contain nullable fields"
                     | Ntr_nullable i -> i in
                   (
-                    String.capitalize key,
+                    key,
                     unify_type error_marker false config span inner_type item.fd_selection_set
                   )
               end

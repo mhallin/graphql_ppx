@@ -222,7 +222,7 @@ and generate_poly_variant_selection_set config loc name fields =
         " were null"] in
   let variant_type = Ast_helper.(
       Typ.variant
-        (List.map (fun (name, _) -> Rtag (name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }])) fields)
+        (List.map (fun (name, _) -> Rtag (String.capitalize name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }])) fields)
         Closed None) in
   [%expr match Js.Json.decodeObject value with
     | None -> [%e make_error_raiser config [%expr "Expected type " ^ [%e const_str_expr name] ^ " to be an object"]]

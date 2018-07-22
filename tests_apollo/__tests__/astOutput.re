@@ -79,12 +79,17 @@ let referenceQuery2 = graphqlTag({|
 
 describe("AST Parsing", () => {
   open Expect;
+  open! Expect.Operators;
 
-  test("Equality 1", () => {
-    expect(Query1.query) |> toEqual(referenceQuery1);
-  });
+  let defs = x => x
+    |. Js.Json.decodeObject
+    |. Js.Option.getExn
+    |. Js.Dict.get("definitions")
+    |. Js.Option.getExn;
 
-  test("Equality 2", () => {
-    expect(Query2.query) |> toEqual(referenceQuery2);
-  });
+  test("Simple query's definitions match Apollo's", () =>
+    expect(defs(Query1.query)) == defs(referenceQuery1));
+
+  test("Complex query's definitions match Apollo's", () =>
+    expect(defs(Query2.query)) == defs(referenceQuery2));
 });
