@@ -1,6 +1,7 @@
 module Fragments: {
   module ListFragment: {
-    type t = Js.t({.
+    type t = Js.t({
+      .
       nullableOfNullable : option(array(option(string))),
       nullableOfNonNullable : option(array(string)),
     });
@@ -9,18 +10,30 @@ module Fragments: {
     let name: string;
     let parse: Js.Json.t => t;
   };
+};
 
-  module Vars: {
-    type t = Js.t({
+module MyQuery: {
+  type t = Js.t({.
+    l1: Js.t({
       .
-      argField: option(Js.t({
+      nullableOfNullable : option(array(option(string))),
+      nullableOfNonNullable : option(array(string)),
+    }),
+    l2: Js.t({
+      .
+      frag1: Js.t({
         .
-        field: string
-      })),
-    });
+        nullableOfNullable : option(array(option(string))),
+        nullableOfNonNullable : option(array(string)),
+      }),
+      frag2: Js.t({
+        .
+        nullableOfNullable : option(array(option(string))),
+        nullableOfNonNullable : option(array(string)),
+      }),
+    }),
+  });
 
-    let query: string;
-    let name: string;
-    let parse: Js.Json.t => t;
-  };
+  let make: unit => Js.t({ . parse: Js.Json.t => t, query: string, variables: Js.Json.t });
+  let makeWithVariables: Js.t({.}) => Js.t({ . parse: Js.Json.t => t, query: string, variables: Js.Json.t });
 }

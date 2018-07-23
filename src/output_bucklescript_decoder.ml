@@ -5,10 +5,12 @@ open Ast_402
 open Asttypes
 open Parsetree
 
+open Generator_utils
+
 let const_str_expr s = Ast_helper.(Exp.constant (Const_string (s, None)))
 
 let make_error_raiser config message =
-  if config.Generator_utils.verbose_error_handling then
+  if config.verbose_error_handling then
     [%expr Js.Exn.raiseError ("graphql_ppx: " ^ [%e message])]
   else
     [%expr Js.Exn.raiseError ("Unexpected GraphQL query response")]
@@ -123,29 +125,36 @@ and generate_record_decoder config loc name fields =
 
   let field_name_tuple_pattern = Ast_helper.(
       fields
-      |> List.map (fun (field, _) -> Pat.var { loc = Location.none; txt = "field_" ^ field })
+      |> filter_map (function
+          | Fr_named_field (field, _) -> Some (Pat.var { loc = Location.none; txt = "field_" ^ field })
+          | Fr_fragment_spread _ -> None)
       |> Pat.tuple) in
 
   let field_decoder_tuple = Ast_helper.(
       fields
-      |> List.map (fun (field, inner) -> 
-          [%expr match Js.Dict.get value [%e const_str_expr field] with
-            | Some value -> [%e generate_decoder config inner]
-            | None -> [%e
-              if can_be_absent_as_field inner then
-                [%expr None ]
-              else 
-                make_error_raiser config [%expr
+      |> filter_map (function
+          | Fr_named_field (field, inner) -> 
+            Some [%expr match Js.Dict.get value [%e const_str_expr field] with
+              | Some value -> [%e generate_decoder config inner]
+              | None -> [%e
+                if can_be_absent_as_field inner then
+                  [%expr None ]
+                else 
+                  make_error_raiser config [%expr
                     "Field " ^ [%e const_str_expr field] ^
-                    " on type " ^ [%e const_str_expr name] ^ " is missing"]]])
+                    " on type " ^ [%e const_str_expr name] ^ " is missing"]]]
+          | Fr_fragment_spread _ -> None)
       |> Exp.tuple) in
 
   let record_fields = Ast_helper.(
       fields
-      |> List.map (fun (field, _) ->
-          (
-            { Location.loc = Location.none; txt = Longident.Lident field}, 
-            Exp.ident { loc = Location.none; txt = Longident.Lident ("field_" ^ field) }))) in
+      |> List.map (function
+          | Fr_named_field (field, _) ->
+            ({ Location.loc = Location.none; txt = Longident.Lident field}, 
+             Exp.ident { loc = Location.none; txt = Longident.Lident ("field_" ^ field) })
+          | Fr_fragment_spread (field, loc, name) ->
+            ({ Location.loc = Location.none; txt = Longident.Lident field},
+             [%expr let value = Js.Json.object_ value in [%e generate_solo_fragment_spread loc name]]))) in
   let record = Ast_helper.Exp.record record_fields None in
 
   [%expr match Js.Json.decodeObject value with
@@ -159,7 +168,7 @@ and generate_record_decoder config loc name fields =
 
 and generate_object_decoder config loc name fields =
   let ctor_result_type = (List.mapi 
-                            (fun i (key, _) -> (key, [], Ast_helper.Typ.var ("a" ^ (string_of_int i))))
+                            (fun i (Fr_named_field (key, _) | Fr_fragment_spread (key, _, _)) -> (key, [], Ast_helper.Typ.var ("a" ^ (string_of_int i))))
                             fields)
   in
   let rec make_obj_constructor_fn i = function
@@ -169,8 +178,9 @@ and generate_object_decoder config loc name fields =
                      ctor_result_type
                      Closed)
                 ])
-    | (key, _) :: next -> Ast_helper.Typ.arrow key (Ast_helper.Typ.var ("a" ^ (string_of_int i)))
-                            (make_obj_constructor_fn (i+1) next) in
+    | Fr_fragment_spread (key, _, _) :: next
+    | Fr_named_field (key, _) :: next -> Ast_helper.Typ.arrow key (Ast_helper.Typ.var ("a" ^ (string_of_int i)))
+                                           (make_obj_constructor_fn (i+1) next) in
   [%expr match Js.Json.decodeObject value with
     | None -> [%e make_error_raiser config [%expr "Object is not a value"]]
     | Some value ->
@@ -186,18 +196,20 @@ and generate_object_decoder config loc name fields =
           ])
           (Ast_helper.Exp.apply (Ast_helper.Exp.ident { txt = Longident.parse "GQL.make_obj"; loc = Location.none})
              (List.append
-                (List.map (fun (key, inner) -> 
-                     (
-                       key,
-                       [%expr match Js.Dict.get value [%e const_str_expr key] with
-                         | Some value -> [%e generate_decoder config inner]
-                         | None -> [%e
-                           if can_be_absent_as_field inner then
-                             [%expr None]
-                           else 
-                             make_error_raiser config [%expr "Field " ^ [%e const_str_expr key] ^ " on type " ^ [%e const_str_expr name] ^ " is missing"]
-                         ]]
-                     )) fields)
+                (List.map (function
+                     | Fr_named_field (key, inner) -> 
+                       (key,
+                        [%expr match Js.Dict.get value [%e const_str_expr key] with
+                          | Some value -> [%e generate_decoder config inner]
+                          | None -> [%e
+                            if can_be_absent_as_field inner then
+                              [%expr None]
+                            else 
+                              make_error_raiser config [%expr "Field " ^ [%e const_str_expr key] ^ " on type " ^ [%e const_str_expr name] ^ " is missing"]
+                          ]])
+                     | Fr_fragment_spread (key, loc, name) ->
+                       (key, [%expr let value = Js.Json.object_ value in [%e generate_solo_fragment_spread loc name]])
+                   ) fields)
                 [("", Ast_helper.Exp.construct { txt = Longident.Lident "()"; loc = Location.none} None)]
              ))
       ]
@@ -217,9 +229,9 @@ and generate_poly_variant_selection_set config loc name fields =
           | None -> let value = temp in [%e variant_decoder]
           | Some _ -> [%e generator_loop next]]
     | [] -> make_error_raiser config [%expr
-        "All fields on variant selection set on type " ^ 
-        [%e const_str_expr name] ^
-        " were null"] in
+              "All fields on variant selection set on type " ^ 
+              [%e const_str_expr name] ^
+              " were null"] in
   let variant_type = Ast_helper.(
       Typ.variant
         (List.map (fun (name, _) -> Rtag (String.capitalize name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }])) fields)
@@ -240,8 +252,8 @@ and generate_poly_variant_union config loc name fragments exhaustive_flag =
         (Exp.case
            (Pat.var { loc = Location.none; txt = "typename" })
            (make_error_raiser config [%expr
-               "Union " ^ [%e const_str_expr name] ^
-               " returned unknown type " ^ typename]),
+              "Union " ^ [%e const_str_expr name] ^
+              " returned unknown type " ^ typename]),
          [ ])
       | Nonexhaustive -> 
         (Exp.case (Pat.any ()) [%expr `Nonexhaustive]), [Rtag ("Nonexhaustive", [], true, [])]) in

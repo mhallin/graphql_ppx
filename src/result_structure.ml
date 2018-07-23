@@ -2,7 +2,11 @@ type exhaustive_flag = | Exhaustive | Nonexhaustive
 
 type loc = Ast_402.Location.t
 
-type t =
+type field_result =
+  | Fr_named_field of string * t
+  | Fr_fragment_spread of string * loc * string
+
+and t =
   | Res_nullable of loc * t
   | Res_array of loc * t
   | Res_id of loc
@@ -13,8 +17,8 @@ type t =
   | Res_raw_scalar of loc
   | Res_poly_enum of loc * Schema.enum_meta
   | Res_custom_decoder of loc * string * t
-  | Res_record of loc * string * (string * t) list
-  | Res_object of loc * string * (string * t) list
+  | Res_record of loc * string * field_result list
+  | Res_object of loc * string * field_result list
   | Res_poly_variant_selection_set of loc * string * (string * t) list
   | Res_poly_variant_union of loc * string * (string * t) list * exhaustive_flag
   | Res_solo_fragment_spread of loc * string

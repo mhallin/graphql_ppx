@@ -19,6 +19,17 @@ let make_error error_marker map_loc span message =
 let has_directive name directives =
   List.exists (fun { item = { d_name = { item } } } -> item = name) directives
 
+let find_directive name directives =
+  match List.find (fun { item = { d_name = { item } } } -> item = name) directives with
+  | d -> Some d
+  | exception Not_found -> None
+
+let find_argument name arguments =
+  arguments
+  |> Option.flat_map (fun { item = arguments } -> match List.find (fun ({ item = arg_name }, _) -> arg_name = name) arguments with
+    | a -> Some a
+    | exception Not_found -> None)
+
 let string_of_longident longident =
   Longident.flatten longident |> String.concat "."
 
@@ -128,17 +139,24 @@ and unify_field error_marker config field_span ty =
       else
         sub_unifier
   in
-  match List.filter (fun { item = { d_name = { item } } } -> item = "bsDecoder") ast_field.fd_directives with
-  | [] -> (key, parser_expr)
-  | { item = { d_arguments = Some { item = [({ item = "fn" }, { item = Iv_string fn_name; span})] } }} :: _ -> 
-    (key, Res_custom_decoder (config.map_loc span, fn_name, parser_expr))
-  | { item = { d_arguments = None }; span }:: _ -> (key, make_error error_marker config.map_loc span "bsDecoder must be given 'fn' argument")
-  | { item = { d_arguments = Some _ }; span }:: _ -> (key, make_error error_marker config.map_loc span "bsDecoder must be given 'fn' argument")
+  match ast_field.fd_directives |> find_directive "bsDecoder" with
+  | None -> Fr_named_field (key, parser_expr)
+  | Some { item = { d_arguments }; span } -> match find_argument "fn" d_arguments with
+    | None -> Fr_named_field (key, make_error error_marker config.map_loc span "bsDecoder must be given 'fn' argument")
+    | Some (_, { item = Iv_string fn_name; span }) -> Fr_named_field (key, Res_custom_decoder (config.map_loc span, fn_name, parser_expr))
+    | Some (_, { span }) -> Fr_named_field (key, make_error error_marker config.map_loc span "The 'fn' argument must be a string")
 
 and unify_selection error_marker config ty selection = match selection with
   | Field field_span -> unify_field error_marker config field_span ty
-  | FragmentSpread _ -> raise @@ Unimplemented "fragment spreads"
-  | InlineFragment _ -> raise @@ Unimplemented "inline fragments"
+  | FragmentSpread { item = { fs_directives; fs_name }; span } ->
+    begin match find_directive "bsField" fs_directives with
+    | None -> raise_error config.map_loc span "You must use @bsField(name: \"fieldName\") to use fragment spreads"
+    | Some { item = { d_arguments }; span } -> match find_argument "name" d_arguments with
+      | None -> raise_error config.map_loc span "bsField must be given 'name' argument"
+      | Some (_, { item = Iv_string key; span}) -> Fr_fragment_spread (key, config.map_loc span, fs_name.item)
+      | Some _ -> raise_error config.map_loc span "The 'name' argument must be a string"
+    end
+  | InlineFragment { span } -> raise_error config.map_loc span "Inline fragments are not yet supported"
 
 and unify_selection_set error_marker as_record config span ty selection_set = match selection_set with
   | None -> make_error error_marker config.map_loc span "Must select subfields on objects"
