@@ -100,22 +100,6 @@ let generate_encoder config (spanning, x) =
   in
   Ast_helper.Vb.mk ~loc (Ast_helper.Pat.var { txt = function_name_string x; loc }) [%expr fun value -> [%e body]]
 
-let rec is_type_recursive schema ts ty =
-  match ty with
-  | Scalar _
-  | Enum _
-  | Object _
-  | Interface _
-  | Union _ -> false
-  | InputObject { iom_name; iom_input_fields } ->
-    if StringSet.mem iom_name ts then true
-    else iom_input_fields |> List.exists (fun { am_arg_type } ->
-        let ty = to_native_type_ref am_arg_type
-                 |> unwrapped_type_name_of_native_type_ref
-                 |> Schema.lookup_type schema
-                 |> Option.unsafe_unwrap in
-        is_type_recursive schema (StringSet.add iom_name ts) ty)
-
 let generate_encoders config loc = function
   | Some { item } ->
     item
