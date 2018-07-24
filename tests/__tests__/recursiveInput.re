@@ -12,18 +12,22 @@ Jest.(describe("Recursive input types", () => {
     expect(MyQuery.make(
       ~arg={
         "otherField": Some("test"),
+        "enum": None,
         "inner": Some({
           "otherField": Some("inner"),
-          "inner": None
+          "inner": None,
+          "enum": Some(`SECOND),
         })
       },
       ())##variables)
       == Js.Json.parseExn({| {
         "arg": {
           "otherField": "test",
+          "enum": null,
           "inner": {
             "otherField": "inner",
-            "inner": null
+            "inner": null,
+            "enum": "SECOND"
           }
         }
       } |}));
