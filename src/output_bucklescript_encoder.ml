@@ -90,7 +90,7 @@ let generate_encoder config (spanning, x) =
                          (fun { evm_name } ->
                             let pattern = Ast_helper.Pat.variant evm_name None in
                             let expr = Ast_helper.Exp.constant (Const_string (evm_name, None)) in
-                            Ast_helper.Exp.case pattern expr) in
+                            Ast_helper.Exp.case pattern [%expr Js.Json.string [%e expr]]) in
       Ast_helper.Exp.match_ [%expr value] match_arms
     | InputObject { iom_input_fields } -> 
       json_of_fields config.schema loc [%expr value] iom_input_fields

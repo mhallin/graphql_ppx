@@ -12,6 +12,7 @@ type Query {
     scalarsInput(arg: VariousScalarsInput!): String!
     listsInput(arg: ListsInput!): String!
     recursiveInput(arg: RecursiveInput!): String!
+    enumInput(arg: SampleField!): String!
     argNamedQuery(query: Int!): Int!
 
     dogOrHuman: DogOrHuman!
