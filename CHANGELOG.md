@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.6] – 2018-07–24
+
 ### Added
 
 * "Production mode" which reduces sizes of error messages, which in turn makes
@@ -141,7 +143,8 @@
   type
 * `@bsVariant` directive added
 
-[Unreleased]: https://github.com/mhallin/graphql_ppx/compare/0.2.5...HEAD
+[Unreleased]: https://github.com/mhallin/graphql_ppx/compare/0.2.6...HEAD
+[0.2.6]:      https://github.com/mhallin/graphql_ppx/compare/0.2.5...0.2.6
 [0.2.5]:      https://github.com/mhallin/graphql_ppx/compare/0.2.4...0.2.5
 [0.2.4]:      https://github.com/mhallin/graphql_ppx/compare/0.2.3...0.2.4
 [0.2.3]:      https://github.com/mhallin/graphql_ppx/compare/0.2.2...0.2.3
