@@ -6,29 +6,6 @@ use in npm. It involves installing native opam packages as
 dependencies.
 
 
-## Developing With `esy`
-
-You can develop and test the GraphQL ppx plugin by installing native
-dependencies using `esy` (`esy` is like `npm` for native).
-
-### Install Dependencies And Build
-
-```sh
-npm install -g esy@preview
-esy install
-esy build
-```
-
-### Test
-
-The following tests the binary built in the previous step, using
-`bs-platform`:
-
-```sh
-npm install   # installs bs-platform via npm
-esy test
-```
-
 ## Developing With `opam`
 
 OPAM is a package and environment manager for OCaml. To work on graphql_ppx
@@ -63,3 +40,17 @@ make test
 ```
 
 to run the tests.
+
+
+## Developing With `esy`
+
+You can work on the GraphQL ppx plugin by installing native
+dependencies using `esy` (`esy` is like `npm` for native).
+
+### Install Dependencies And Build
+
+```sh
+npm install -g esy@preview
+esy install
+esy build
+```
