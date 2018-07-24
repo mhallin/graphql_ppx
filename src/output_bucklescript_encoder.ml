@@ -15,34 +15,37 @@ let mangle_enum_name = Generator_utils.uncapitalize_ascii
 let ident_from_string loc func_name =
   Ast_helper.(Exp.ident ~loc { txt = Longident.parse func_name; loc })
 
-module TypeSet = Set.Make (
-  struct
-    type t = string spanning * Schema.type_meta
-    let compare (_, x) (_, y) = Schema.compare_type_meta x y
-  end
-  )
+module StringSet = Set.Make(String)
 
-let rec extract_variable_types schema acc =
-  function
-  | [] -> acc
-  | (spanning, type_meta)::t -> 
-    let ty = lookup_type schema (
-        unwrapped_type_name_of_native_type_ref (to_native_type_ref type_meta)
-      ) in
-    match ty with
-    | None ->
-      extract_variable_types schema acc t
-    | Some x when TypeSet.exists (fun (_, y) -> Schema.compare_type_meta x y = 0) acc ->
-      extract_variable_types schema acc t
-    | Some InputObject x ->
-      let acc = TypeSet.add (spanning, (InputObject x)) acc in
-      let child_types = List.map (fun x -> (spanning, x.am_arg_type)) x.iom_input_fields in
-      extract_variable_types schema (extract_variable_types schema acc child_types) t
-    | Some Enum x ->
-      let acc = TypeSet.add (spanning, Enum x) acc in
-      extract_variable_types schema acc t
-    | Some _ ->
-      extract_variable_types schema acc t
+let sort_variable_types schema variables =
+  let recursive_flag = ref false in
+  let ordered_nodes = Queue.create () in
+  let has_added_to_queue name = Queue.fold (fun acc (_, v) -> acc || name = v) false ordered_nodes in
+  let rec loop visit_stack = function
+    | [] -> ()
+    | (span, type_ref) :: tail ->
+      let type_name = innermost_name type_ref in
+      let () = match lookup_type schema type_name with
+        | None -> ()
+        | Some _ when StringSet.mem type_name visit_stack -> recursive_flag := true
+        | Some _ when has_added_to_queue type_name -> ()
+        | Some (Enum _) -> Queue.push (span, type_name) ordered_nodes
+        | Some (InputObject io) ->
+          let () = loop
+              (StringSet.add type_name visit_stack)
+              (List.map (fun { am_arg_type } -> (span, am_arg_type)) io.iom_input_fields) in
+          Queue.push (span, type_name) ordered_nodes
+        | Some _ -> ()
+      in loop visit_stack tail
+  in
+  let () = loop StringSet.empty variables in
+  let () = Queue.iter (fun (_, name) -> Printf.printf "ordered type: %s\n" name) ordered_nodes in
+  let ordered_nodes = Array.init
+      (Queue.length ordered_nodes)
+      (fun _ -> 
+         let span, name = Queue.take ordered_nodes in
+         (span, name |> lookup_type schema |> Option.unsafe_unwrap)) in
+  (! recursive_flag, ordered_nodes)
 
 let function_name_string x = "json_of_" ^ Schema.extract_name_from_type_meta x
 
@@ -97,8 +100,6 @@ let generate_encoder config (spanning, x) =
   in
   Ast_helper.Vb.mk ~loc (Ast_helper.Pat.var { txt = function_name_string x; loc }) [%expr fun value -> [%e body]]
 
-module StringSet = Set.Make(String)
-
 let rec is_type_recursive schema ts ty =
   match ty with
   | Scalar _
@@ -117,11 +118,8 @@ let rec is_type_recursive schema ts ty =
 
 let generate_encoders config loc = function
   | Some { item } ->
-    List.map
-      (fun (spanning, {vd_type = variable_type}) -> (spanning, to_schema_type_ref variable_type.item)) item 
-    |> extract_variable_types config.schema TypeSet.empty
-    |> (fun types -> (
-          (if TypeSet.exists (fun (_, ty) -> is_type_recursive config.schema StringSet.empty ty) types then Recursive else Nonrecursive),
-          List.map (generate_encoder config) (TypeSet.elements types)
-        ))
-  | None -> (Nonrecursive, [])
+    item
+    |> List.map (fun (span, {vd_type = variable_type}) -> span, to_schema_type_ref variable_type.item)
+    |> sort_variable_types config.schema
+    |> (fun (is_recursive, types) -> (if is_recursive then Recursive else Nonrecursive), Array.map (generate_encoder config) types)
+  | None -> (Nonrecursive, [||])

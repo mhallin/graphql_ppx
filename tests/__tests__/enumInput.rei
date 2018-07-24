@@ -11,4 +11,6 @@ module MyQuery: {
     .
     arg: [ | `FIRST | `SECOND | `THIRD],
   }) => Js.t({ . parse: Js.Json.t => t, query: string, variables: Js.Json.t });
+
+  let query: string;
 };

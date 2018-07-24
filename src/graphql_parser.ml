@@ -35,7 +35,7 @@ let expect_name parser =
   | Error e -> Error e
 
 let expect_dotted_name parser =
-  let rec loop start_pos end_pos acc = let () = Printf.printf "In dotted loop: acc = %s\n" acc in match next parser with
+  let rec loop start_pos end_pos acc = match next parser with
     | Ok { item = Graphql_lexer.Name name; span = _, end_pos } ->
       let acc = acc ^ name in
       begin match peek parser with

@@ -17,7 +17,7 @@ module MyQuery = [%graphql {|
         ())##variables)
         == Js.Json.parseExn({| {
           "arg": {
-            "otherField": "test",
+            "field": "test",
             "enum": "SECOND"
           }
         } |}));

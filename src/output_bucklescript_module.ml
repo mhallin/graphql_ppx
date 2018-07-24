@@ -56,14 +56,22 @@ let generate_default_operation config variable_defs has_error operation res_stru
     let make_fn, make_with_variables_fn = Unifier.make_make_fun config variable_defs in
     List.concat [
       make_printed_query config [Graphql_ast.Operation operation];
-      [
-        [%stri let parse = fun value -> [%e parse_fn]];
-        {
-          pstr_desc = (Pstr_value (rec_flag, encoders));
-          pstr_loc = Location.none;
-        };
-        [%stri let make = [%e make_fn]];
-        [%stri let makeWithVariables = [%e make_with_variables_fn]];
+      List.concat [
+        [ [%stri let parse = fun value -> [%e parse_fn]] ];
+        (if rec_flag = Recursive then
+           [{
+             pstr_desc = (Pstr_value (rec_flag, encoders |> Array.to_list));
+             pstr_loc = Location.none;
+           }]
+         else 
+           encoders
+           |> Array.map (fun encoder -> { pstr_desc = (Pstr_value (Nonrecursive, [encoder])); pstr_loc = Location.none })
+           |> Array.to_list
+        );
+        [
+          [%stri let make = [%e make_fn]];
+          [%stri let makeWithVariables = [%e make_with_variables_fn]];
+        ];
       ];
       ret_type_magic
     ]
