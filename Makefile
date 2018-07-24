@@ -7,9 +7,9 @@ build: src/dune.flags
 	$(DUNE) build @graphql_ppx
 	cp _build/default/src/graphql_ppx.exe .
 
-test: build tests/graphql_schema.json tests_apollo/graphql_schema.json
-	# $(DUNE) build @all_tests
-	# ./_build/default/tests/all_tests.exe
+test: build only-test
+
+only-test: tests/graphql_schema.json tests_apollo/graphql_schema.json
 	(cd tests && ../node_modules/.bin/bsb -clean-world && ../node_modules/.bin/bsb -make-world)
 	$(SKIP_APOLLO_TESTS) || (cd tests_apollo && ../node_modules/.bin/bsb -clean-world && ../node_modules/.bin/bsb -make-world)
 	$(SKIP_APOLLO_TESTS) || ./node_modules/.bin/jest --verbose tests/lib/js tests_apollo/lib/js
@@ -30,6 +30,6 @@ endif
 
 clean:
 	$(DUNE) clean
-	rm -rf _build graphql_ppx.exe tests/lib
+	rm -rf _build graphql_ppx.exe tests/lib src/dune.flags
 
-.PHONY: build test clean
+.PHONY: build test only-test clean

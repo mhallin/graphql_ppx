@@ -4,31 +4,24 @@ os:
   - linux
   - osx
 
-addons:
-  apt:
-    sources:
-      - avsm
-    packages:
-      - ocaml
-      - ocaml-native-compilers
-      - camlp4-extra
-      - opam
+sudo: required
+
+services:
+  - docker
 
 before_install:
   - bash -e ci/travis_before_install.sh
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export TARGET_NAME=darwin-x64; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then export TARGET_NAME=linux-x64; fi
-  - eval `opam config env`
 
 before_script:
   - IS_GRAPHQL_PPX_CI=true yarn
-  - OPAMYES=1 opam pin add graphql_ppx . -n
-  - OPAMYES=1 opam install graphql_ppx --deps-only
+  - ./ci/before_script_$TRAVIS_OS_NAME.sh
 
 script:
-  - make
-  - make test
-  - NODE_ENV=production make test
+  - ./ci/build_script_$TRAVIS_OS_NAME.sh
+  - make only-test
+  - NODE_ENV=production make only-test
   - mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
 
 deploy:
