@@ -3,7 +3,7 @@ DUNE?=dune
 OS:=$(shell uname -s)
 SKIP_APOLLO_TESTS?=false
 
-build: src/dune.flags
+build:
 	$(DUNE) build @graphql_ppx
 	cp _build/default/src/graphql_ppx.exe .
 
@@ -20,16 +20,8 @@ tests/graphql_schema.json: tests/schema.gql
 tests_apollo/graphql_schema.json: tests/graphql_schema.json
 	cp $< $@
 
-ifeq ($(OS),Linux)
-src/dune.flags:
-	echo '(-ccopt -static)' > $@
-else
-src/dune.flags:
-	echo '()' > $@
-endif
-
 clean:
 	$(DUNE) clean
-	rm -rf _build graphql_ppx.exe tests/lib src/dune.flags
+	rm -rf _build graphql_ppx.exe tests/lib
 
 .PHONY: build test only-test clean
