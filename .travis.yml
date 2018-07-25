@@ -60,7 +60,7 @@ jobs:
         provider: npm
         email: mhallin@fastmail.com
         api_key:
-          secure: "WrVb4p1hoobkvcL5B0Tx+6H/+6wNqJbHc5/BfsXCLautjk4kEjgWFfpNOGKtww+vXm2O/huzmkJgoieRUXFmTxD/enC0jWthv5JCCtGPtBNjvPGv000M0PNoamcy9Cmmn9NbJ8oAjCp8vDH9TLnielP7sPnUtqiBbi0igzcQu7UJoXgN+oCcs0d+L4rGHDD+EyJ5UugcXWefY9U/vWzec5fcIjazATMjl1yIGn9Mq4ldFp/ekzsOMXf5rlVeN0UZJ8tsAMY+tdMruZgmqC/h4f/nVeVxXaGqF/2AWlfdD/YGIN8HABK1Z6yHp1JHiG4BbY6r3OIygiva2FMXVS5MOpFIpfgr65LvMvV01M9KrQrTSF44cCJBmtYJdmDjvgvBSAY4Ifzl1DpD96W9SW5pRXXIPEGpn1ByTJYZiXs1I4T0T6hEWSNIHMX0TASR/bhyvC38MfoSd9/RmRH89avN4v+5jeSaIJPwVHxzvieF9iD+i+sFUMLDcEbcLRDhhIuEfsgzEW4lf0iVJC2/EvissQu64nYWAv0dKr1I/K+ahn9uWnrWBxFGbLIJydDQieLGtu1sfjfEuroLH+no6mpHeGAQQ4GYDJ38WtDxzmAOn5HolotKMsLG3GgYiNrmyoWA55LRRiWcEoYj4Spe/nAd/dCjjms82SezNK9a7/D2VJI="
+          secure: "QwfYKxbPceGZcz1gVtaydLvnhu1txRzxE7KM1eCWKxG1OWliOk6MOqSdkgTwUBqvQJY5b9m01eVfR23dFE1V3prFDg8tMiT5WaQcYRmZ+RYVlXo4vsuMzbRXaqMFudsPZL/U5Vu7wyJxJqI4JwW6FmByygpT8+FqcvAu1OKCQmPCLspBlxufkN2qOrvEEBsSYaBJjE9lUZDmHsaS/IiN3XpiiE8y1fBlvqtu1B5vtupTTRC72tsqrwDI1SFs+vjIZhuW8rFJzmgWlfG+BeNuryq1QUz1J4/Zsr9TczrpDMzv2nbmIL/gY7TIPZZbgHEDCWNmA7hBlrICXHpsYEzigIKqWqh5QxfafNbE4dc8FtCI9PdKxX+6BGt1BJfTRHjsI0JAaT+RMnB4p9JHw+8hvtIJqGCEpP6ettFS6mAjp6DoxtjHdIendYhHiMhSUt0HJBOlXxrut3L6i00+dVUqXcnHOYib1HxUx4qUPiSq1OTqh4nqfknuq/tUCGUZKjpjoq/7gnRtUL4MJPnHu6FVpE+0baShOyk9O2i9xAVOPsgbWfshvUjUAHjjhKC1nc/m3CDcjV5fEWzBcx4kvqHdIJRi3MLE89SSCpNppud4bdnp9NS/eF3SLGtqYIrWmC0IAC6mpcEnROAoeyFpuZ0fvYki0SS/xcHwsCbAvU2sM7c="
         on:
           tags: true
         skip_cleanup: true
