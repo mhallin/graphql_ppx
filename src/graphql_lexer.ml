@@ -102,13 +102,7 @@ let emit_single_char lexer token =
 
 
 let rec scan_over_whitespace lexer =
-  let rec scan_to_end_of_line lexer =
-    match peek_char_only lexer with
-    | Some '\n' -> let _ = next_char lexer in scan_over_whitespace lexer
-    | Some '\r' -> let _ = next_char lexer in scan_over_whitespace lexer
-    | Some _ -> let _ = next_char lexer in scan_to_end_of_line lexer
-    | None -> ()
-  in match peek_char_only lexer with
+  match peek_char_only lexer with
   | Some '\t' -> let _ = next_char lexer in scan_over_whitespace lexer
   | Some ' '  -> let _ = next_char lexer in scan_over_whitespace lexer
   | Some '\n' -> let _ = next_char lexer in scan_over_whitespace lexer
@@ -116,6 +110,13 @@ let rec scan_over_whitespace lexer =
   | Some ','  -> let _ = next_char lexer in scan_over_whitespace lexer
   | Some '#'  -> let _ = next_char lexer in scan_to_end_of_line lexer
   | _ -> ()
+and scan_to_end_of_line lexer =
+  match peek_char_only lexer with
+  | Some '\n' -> let _ = next_char lexer in scan_over_whitespace lexer
+  | Some '\r' -> let _ = next_char lexer in scan_over_whitespace lexer
+  | Some _ -> let _ = next_char lexer in scan_to_end_of_line lexer
+  | None -> ()
+
 
 let is_name_start c =
   c = '_' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
