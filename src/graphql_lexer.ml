@@ -100,15 +100,15 @@ let emit_single_char lexer token =
   in
   single_width start_pos token
 
-let rec scan_to_end_of_line lexer =
-  match peek_char_only lexer with
-  | Some '\n' -> let _ = next_char lexer in ()
-  | Some '\r' -> let _ = next_char lexer in ()
-  | Some _ -> let _ = next_char lexer in scan_to_end_of_line lexer
-  | None -> ()
 
 let rec scan_over_whitespace lexer =
-  match peek_char_only lexer with
+  let rec scan_to_end_of_line lexer =
+    match peek_char_only lexer with
+    | Some '\n' -> let _ = next_char lexer in scan_over_whitespace lexer
+    | Some '\r' -> let _ = next_char lexer in scan_over_whitespace lexer
+    | Some _ -> let _ = next_char lexer in scan_to_end_of_line lexer
+    | None -> ()
+  in match peek_char_only lexer with
   | Some '\t' -> let _ = next_char lexer in scan_over_whitespace lexer
   | Some ' '  -> let _ = next_char lexer in scan_over_whitespace lexer
   | Some '\n' -> let _ = next_char lexer in scan_over_whitespace lexer
