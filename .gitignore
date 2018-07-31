@@ -4,11 +4,12 @@
 /node_modules
 /tests/lib
 /tests/graphql_schema.json
-/tests/.graphql_ppx_cache
 /tests_apollo/lib
+/**/.graphql_ppx_cache
 /tests_apollo/graphql_schema.json
 /lib
 /ppx
 /graphql_ppx.*
+dune.flags
 jbuild.flags
 .merlin

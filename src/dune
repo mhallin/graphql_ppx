@@ -1,0 +1,9 @@
+(executable
+ (name graphql_ppx)
+ (libraries ocaml-migrate-parsetree
+            unix
+            result
+            yojson
+            ppx_tools_versioned.metaquot_402)
+ (flags (:include ../discover/dune.flags))
+ (preprocess (pps ppx_tools_versioned.metaquot_402)))

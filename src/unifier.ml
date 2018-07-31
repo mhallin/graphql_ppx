@@ -43,35 +43,32 @@ let rec make_make_fun config variable_defs =
           | (name, def) :: tl -> let name_loc = config.map_loc name.span in
             Ast_helper.Exp.let_ ~loc:name_loc Nonrecursive [
               Ast_helper.(Vb.mk
-                ~loc:name_loc
-                (Pat.var ~loc:name_loc {txt=name.item; loc=name_loc})
-                [%expr variables##[%e Exp.ident {txt=Longident.Lident name.item; loc=name_loc}]])
+                            ~loc:name_loc
+                            (Pat.var ~loc:name_loc {txt=name.item; loc=name_loc})
+                            [%expr variables##[%e Exp.ident {txt=Longident.Lident name.item; loc=name_loc}]])
             ] (generate_bindings tl)
         in
         [%expr fun variables -> [%e generate_bindings defs]]
       in
-      let rec make_body defs = match defs with
-        | (name, def) :: tl -> 
-          let parser_ = (
-            Variable_encoder.parser_for_type config.schema (config.map_loc name.span) (
-              to_native_type_ref (to_schema_type_ref def.vd_type.item)
-            )
-          ) in 
-          begin match parser_ with
-            | None -> make_body tl
-            | Some parser_ ->
-              let loc = config.map_loc name.span in
-              [%expr
-                (
-                  [%e Ast_helper.Exp.constant ~loc (Const_string (name.item, None))],
-                  [%e parser_] [%e Ast_helper.Exp.ident ~loc {txt=Longident.parse name.item; loc}]
-                ) :: [%e make_body tl]] [@metaloc loc]
-          end
-        | [] -> [%expr []] [@metaloc config.map_loc span]
-      in
+      let make_var_ctor defs =
+        defs
+        |> List.map (fun (name, def) -> 
+            let parser_ = (
+              Output_bucklescript_encoder.parser_for_type config.schema (config.map_loc name.span) (
+                to_native_type_ref (to_schema_type_ref def.vd_type.item)
+              )
+            ) in
+            let loc = config.map_loc name.span in
+            [%expr
+              (
+                [%e Ast_helper.Exp.constant ~loc (Const_string (name.item, None))],
+                [%e parser_] [%e Ast_helper.Exp.ident ~loc {txt=Longident.parse name.item; loc}]
+              )] [@metaloc loc]
+          )
+          |> Ast_helper.Exp.array in 
       let loc = config.map_loc span in
       let variable_ctor_body = 
-        [%expr Js.Json.object_ (Js.Dict.fromList [%e make_body item])] [@metaloc loc]
+        [%expr Js.Json.object_ (Js.Dict.fromArray [%e make_var_ctor item])] [@metaloc loc]
       in
       (
         make_labelled_function item (make_make_triple loc variable_ctor_body),

@@ -1,5 +1,0 @@
-(jbuild_version 1)
-
-(alias
- ((name graphql_ppx)
-  (deps (src/graphql_ppx.exe))))

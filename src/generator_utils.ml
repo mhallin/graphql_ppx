@@ -29,6 +29,15 @@ type output_config = {
   map_loc: Source_pos.source_position * Source_pos.source_position -> Result_structure.loc;
   delimiter: string option;
   output_mode: output_mode;
+  verbose_error_handling: bool;
   schema: Schema.schema;
   full_document: Graphql_ast.document;
 }
+
+let filter_map f l =
+  let rec loop acc = function
+  | [] -> List.rev acc
+  | head :: tail -> match f head with
+    | None -> loop acc tail
+    | Some v -> loop (v :: acc) tail
+  in loop [] l

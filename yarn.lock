@@ -427,9 +427,9 @@ browser-resolve@^1.11.2:
   dependencies:
     resolve "1.1.7"
 
-bs-platform@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/bs-platform/-/bs-platform-3.0.0.tgz#38f200730db52fdea37819376b6ac3dfb20244c0"
+bs-platform@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/bs-platform/-/bs-platform-4.0.1.tgz#544b58c2a53299cf406b57477e06389e4adab421"
 
 bser@^2.0.0:
   version "2.0.0"
@@ -1110,8 +1110,8 @@ graceful-fs@^4.1.11, graceful-fs@^4.1.2:
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.1.11.tgz#0e8bdfe4d1ddb8854d64e04ea7c00e2a026e5658"
 
 graphql-tag@^2.6.1:
-  version "2.6.1"
-  resolved "https://registry.yarnpkg.com/graphql-tag/-/graphql-tag-2.6.1.tgz#4788d509f6e29607d947fc47a40c4e18f736d34a"
+  version "2.9.2"
+  resolved "https://registry.yarnpkg.com/graphql-tag/-/graphql-tag-2.9.2.tgz#2f60a5a981375f430bf1e6e95992427dc18af686"
 
 graphql-tools@^0.10.1:
   version "0.10.1"

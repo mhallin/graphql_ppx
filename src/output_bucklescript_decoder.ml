@@ -5,42 +5,49 @@ open Ast_402
 open Asttypes
 open Parsetree
 
+open Generator_utils
+
 let const_str_expr s = Ast_helper.(Exp.constant (Const_string (s, None)))
 
-let string_decoder loc =
+let make_error_raiser config message =
+  if config.verbose_error_handling then
+    [%expr Js.Exn.raiseError ("graphql_ppx: " ^ [%e message])]
+  else
+    [%expr Js.Exn.raiseError ("Unexpected GraphQL query response")]
+
+let string_decoder config loc =
   [%expr match Js.Json.decodeString value with
-    | None -> raise (Graphql_error ("Expected string, got " ^ (Js.Json.stringify value)))
+    | None -> [%e make_error_raiser config [%expr "Expected string, got " ^ (Js.Json.stringify value)]]
     | Some value -> (value : string)] [@metaloc loc]
 
 let id_decoder = string_decoder
 
-let float_decoder loc =
+let float_decoder config loc =
   [%expr match Js.Json.decodeNumber value with
-    | None -> raise (Graphql_error ("Expected float, got " ^ (Js.Json.stringify value)))
+    | None -> [%e make_error_raiser config [%expr "Expected float, got " ^ (Js.Json.stringify value)]]
     | Some value -> value] [@metaloc loc]
 
-let int_decoder loc =
+let int_decoder config loc =
   [%expr match Js.Json.decodeNumber value with
-    | None -> raise (Graphql_error ("Expected int, got " ^ (Js.Json.stringify value)))
+    | None -> [%e make_error_raiser config [%expr "Expected int, got " ^ (Js.Json.stringify value)]]
     | Some value -> int_of_float value] [@metaloc loc]
 
-let boolean_decoder loc =
+let boolean_decoder config loc =
   [%expr match Js.Json.decodeBoolean value with
-    | None -> raise (Graphql_error ("Expected boolean, got " ^ (Js.Json.stringify value)))
+    | None -> [%e make_error_raiser config [%expr "Expected boolean, got " ^ (Js.Json.stringify value)]]
     | Some value -> value] [@metaloc loc]
 
-let generate_poly_enum_decoder loc enum_meta =
-  let enum_match_arms = Ast_helper.(List.map
-                                      (fun {evm_name} -> Exp.case 
-                                          (Pat.constant (Const_string (evm_name, None)))
-                                          (Exp.variant evm_name None))
-                                      enum_meta.em_values) in
-  let fallback_arm = Ast_helper.(Exp.case
-                                   (Pat.any ())
-                                   [%expr raise (Graphql_error (
-                                       "Unknown enum variant for " ^
-                                       [%e const_str_expr enum_meta.em_name] ^
-                                       ": " ^ value))]) in
+let generate_poly_enum_decoder config loc enum_meta =
+  let enum_match_arms = Ast_helper.(
+      List.map
+        (fun {evm_name} -> Exp.case 
+            (Pat.constant (Const_string (evm_name, None)))
+            (Exp.variant evm_name None))
+        enum_meta.em_values) in
+  let fallback_arm = Ast_helper.(
+      Exp.case
+        (Pat.any ())
+        (make_error_raiser config [%expr "Unknown enum variant for " ^ [%e const_str_expr enum_meta.em_name] ^ ": " ^ value])) in
   let match_expr = Ast_helper.(Exp.match_
                                  [%expr value]
                                  (List.concat [enum_match_arms; [fallback_arm]])) in
@@ -50,10 +57,10 @@ let generate_poly_enum_decoder loc enum_meta =
         Closed None) [@metaloc loc]
   in
   [%expr match Js.Json.decodeString value with 
-    | None -> raise (Graphql_error (
+    | None -> [%e make_error_raiser config [%expr
         "Expected enum value for " ^
         [%e const_str_expr enum_meta.em_name] ^
-        ", got " ^ (Js.Json.stringify value)))
+        ", got " ^ (Js.Json.stringify value)]]
     | Some value -> ([%e match_expr]: [%t enum_ty])]
 
 let generate_solo_fragment_spread loc name =
@@ -64,41 +71,41 @@ let generate_error loc message =
   let ext = Ast_mapper.extension_of_error (Location.error ~loc message) in
   [%expr let _value = value in [%e Ast_helper.Exp.extension ~loc ext]]
 
-let rec generate_decoder = function
-  | Res_nullable (loc, inner) -> generate_nullable_decoder loc inner
-  | Res_array (loc, inner) -> generate_array_decoder loc inner
-  | Res_id loc -> id_decoder loc
-  | Res_string loc -> string_decoder loc
-  | Res_int loc -> int_decoder loc
-  | Res_float loc -> float_decoder loc
-  | Res_boolean loc -> boolean_decoder loc
+let rec generate_decoder config = function
+  | Res_nullable (loc, inner) -> generate_nullable_decoder config loc inner
+  | Res_array (loc, inner) -> generate_array_decoder config loc inner
+  | Res_id loc -> id_decoder config loc
+  | Res_string loc -> string_decoder config loc
+  | Res_int loc -> int_decoder config loc
+  | Res_float loc -> float_decoder config loc
+  | Res_boolean loc -> boolean_decoder config loc
   | Res_raw_scalar loc -> [%expr value]
-  | Res_poly_enum (loc, enum_meta) -> generate_poly_enum_decoder loc enum_meta
-  | Res_custom_decoder (loc, ident, inner) -> generate_custom_decoder loc ident inner
-  | Res_record (loc, name, fields) -> generate_record_decoder loc name fields
-  | Res_object (loc, name, fields) -> generate_object_decoder loc name fields
-  | Res_poly_variant_selection_set (loc, name, fields) -> generate_poly_variant_selection_set loc name fields
-  | Res_poly_variant_union (loc, name, fragments, exhaustive) -> generate_poly_variant_union loc name fragments exhaustive
+  | Res_poly_enum (loc, enum_meta) -> generate_poly_enum_decoder config loc enum_meta
+  | Res_custom_decoder (loc, ident, inner) -> generate_custom_decoder config loc ident inner
+  | Res_record (loc, name, fields) -> generate_record_decoder config loc name fields
+  | Res_object (loc, name, fields) -> generate_object_decoder config loc name fields
+  | Res_poly_variant_selection_set (loc, name, fields) -> generate_poly_variant_selection_set config loc name fields
+  | Res_poly_variant_union (loc, name, fragments, exhaustive) -> generate_poly_variant_union config loc name fragments exhaustive
   | Res_solo_fragment_spread (loc, name) -> generate_solo_fragment_spread loc name
   | Res_error (loc, message) -> generate_error loc message
 
-and generate_nullable_decoder loc inner =
+and generate_nullable_decoder config loc inner =
   [%expr match Js.Json.decodeNull value with
-    | None -> Some [%e generate_decoder inner]
+    | None -> Some [%e generate_decoder config inner]
     | Some _ -> None] [@metaloc loc]
 
-and generate_array_decoder loc inner =
+and generate_array_decoder config loc inner =
   [%expr match Js.Json.decodeArray value with
-    | None -> raise (Graphql_error ("Expected array, got " ^ (Js.Json.stringify value)))
-    | Some value -> Js.Array.map (fun value -> [%e generate_decoder inner]) value] [@metaloc loc]
+    | None -> [%e make_error_raiser config [%expr ("Expected array, got " ^ (Js.Json.stringify value))]]
+    | Some value -> Js.Array.map (fun value -> [%e generate_decoder config inner]) value] [@metaloc loc]
 
-and generate_custom_decoder loc ident inner =
+and generate_custom_decoder config loc ident inner =
   let fn_expr = Ast_helper.(Exp.ident
                               { loc = Location.none; txt = Longident.parse ident }) in
-  [%expr [%e fn_expr] ([%e generate_decoder inner])] [@metaloc loc]
+  [%expr [%e fn_expr] ([%e generate_decoder config inner])] [@metaloc loc]
 
 
-and generate_record_decoder loc name fields =
+and generate_record_decoder config loc name fields =
   (*
     Given a selection set, this function first generates the resolvers,
     binding the results to individual local variables. It then generates
@@ -118,39 +125,50 @@ and generate_record_decoder loc name fields =
 
   let field_name_tuple_pattern = Ast_helper.(
       fields
-      |> List.map (fun (field, _) -> Pat.var { loc = Location.none; txt = "field_" ^ field })
+      |> filter_map (function
+          | Fr_named_field (field, _) -> Some (Pat.var { loc = Location.none; txt = "field_" ^ field })
+          | Fr_fragment_spread _ -> None)
       |> Pat.tuple) in
 
   let field_decoder_tuple = Ast_helper.(
       fields
-      |> List.map (fun (field, inner) -> 
-          [%expr match Js.Dict.get value [%e const_str_expr field] with
-            | None -> raise (Graphql_error (
-                "Field " ^ [%e const_str_expr field] ^
-                " on type " ^ [%e const_str_expr name] ^ " is missing"))
-            | Some value -> [%e generate_decoder inner]])
+      |> filter_map (function
+          | Fr_named_field (field, inner) -> 
+            Some [%expr match Js.Dict.get value [%e const_str_expr field] with
+              | Some value -> [%e generate_decoder config inner]
+              | None -> [%e
+                if can_be_absent_as_field inner then
+                  [%expr None ]
+                else 
+                  make_error_raiser config [%expr
+                    "Field " ^ [%e const_str_expr field] ^
+                    " on type " ^ [%e const_str_expr name] ^ " is missing"]]]
+          | Fr_fragment_spread _ -> None)
       |> Exp.tuple) in
 
   let record_fields = Ast_helper.(
       fields
-      |> List.map (fun (field, _) ->
-          (
-            { Location.loc = Location.none; txt = Longident.Lident field}, 
-            Exp.ident { loc = Location.none; txt = Longident.Lident ("field_" ^ field) }))) in
+      |> List.map (function
+          | Fr_named_field (field, _) ->
+            ({ Location.loc = Location.none; txt = Longident.Lident field}, 
+             Exp.ident { loc = Location.none; txt = Longident.Lident ("field_" ^ field) })
+          | Fr_fragment_spread (field, loc, name) ->
+            ({ Location.loc = Location.none; txt = Longident.Lident field},
+             [%expr let value = Js.Json.object_ value in [%e generate_solo_fragment_spread loc name]]))) in
   let record = Ast_helper.Exp.record record_fields None in
 
   [%expr match Js.Json.decodeObject value with
-    | None -> raise (Graphql_error (
+    | None -> [%e make_error_raiser config [%expr
         "Expected object of type " ^
         [%e const_str_expr name] ^
-        ", got " ^ (Js.Json.stringify value)))
+        ", got " ^ (Js.Json.stringify value)]]
     | Some value ->
       let [%p field_name_tuple_pattern] = [%e field_decoder_tuple]
       in [%e record]] [@metaloc loc]
 
-and generate_object_decoder loc name fields =
+and generate_object_decoder config loc name fields =
   let ctor_result_type = (List.mapi 
-                            (fun i (key, _) -> (key, [], Ast_helper.Typ.var ("a" ^ (string_of_int i))))
+                            (fun i (Fr_named_field (key, _) | Fr_fragment_spread (key, _, _)) -> (key, [], Ast_helper.Typ.var ("a" ^ (string_of_int i))))
                             fields)
   in
   let rec make_obj_constructor_fn i = function
@@ -160,10 +178,11 @@ and generate_object_decoder loc name fields =
                      ctor_result_type
                      Closed)
                 ])
-    | (key, _) :: next -> Ast_helper.Typ.arrow key (Ast_helper.Typ.var ("a" ^ (string_of_int i)))
-                            (make_obj_constructor_fn (i+1) next) in
+    | Fr_fragment_spread (key, _, _) :: next
+    | Fr_named_field (key, _) :: next -> Ast_helper.Typ.arrow key (Ast_helper.Typ.var ("a" ^ (string_of_int i)))
+                                           (make_obj_constructor_fn (i+1) next) in
   [%expr match Js.Json.decodeObject value with
-    | None -> raise (Graphql_error "Object is not a value")
+    | None -> [%e make_error_raiser config [%expr "Object is not a value"]]
     | Some value ->
       [%e
         Ast_helper.Exp.letmodule {txt = "GQL"; loc = Location.none} (Ast_helper.Mod.structure [
@@ -177,58 +196,64 @@ and generate_object_decoder loc name fields =
           ])
           (Ast_helper.Exp.apply (Ast_helper.Exp.ident { txt = Longident.parse "GQL.make_obj"; loc = Location.none})
              (List.append
-                (List.map (fun (key, inner) -> 
-                     (
-                       key,
-                       [%expr match Js.Dict.get value [%e const_str_expr key] with
-                         | None -> raise (Graphql_error ("Field " ^ [%e const_str_expr key] ^ " on type " ^ [%e const_str_expr name] ^ " is missing"))
-                         | Some value -> [%e generate_decoder inner]
-                       ]
-                     )) fields)
+                (List.map (function
+                     | Fr_named_field (key, inner) -> 
+                       (key,
+                        [%expr match Js.Dict.get value [%e const_str_expr key] with
+                          | Some value -> [%e generate_decoder config inner]
+                          | None -> [%e
+                            if can_be_absent_as_field inner then
+                              [%expr None]
+                            else 
+                              make_error_raiser config [%expr "Field " ^ [%e const_str_expr key] ^ " on type " ^ [%e const_str_expr name] ^ " is missing"]
+                          ]])
+                     | Fr_fragment_spread (key, loc, name) ->
+                       (key, [%expr let value = Js.Json.object_ value in [%e generate_solo_fragment_spread loc name]])
+                   ) fields)
                 [("", Ast_helper.Exp.construct { txt = Longident.Lident "()"; loc = Location.none} None)]
              ))
       ]
   ] [@metaloc loc]
 
-and generate_poly_variant_selection_set loc name fields =
+and generate_poly_variant_selection_set config loc name fields =
   let rec generator_loop = function
     | (field, inner) :: next ->
       let variant_decoder = Ast_helper.(Exp.variant
                                           (String.capitalize field)
-                                          (Some (generate_decoder inner))) in
+                                          (Some (generate_decoder config inner))) in
       [%expr match Js.Dict.get value [%e const_str_expr field] with
-        | None -> raise (Graphql_error (
+        | None -> [%e make_error_raiser config [%expr
             "Field " ^ [%e const_str_expr field] ^
-            " on type " ^ [%e const_str_expr name] ^ " is missing"))
+            " on type " ^ [%e const_str_expr name] ^ " is missing"]]
         | Some temp -> match Js.Json.decodeNull temp with
           | None -> let value = temp in [%e variant_decoder]
           | Some _ -> [%e generator_loop next]]
-    | [] -> [%expr raise (Graphql_error (
-        "All fields on variant selection set on type " ^ 
-        [%e const_str_expr name] ^
-        " were null"))] in
+    | [] -> make_error_raiser config [%expr
+              "All fields on variant selection set on type " ^ 
+              [%e const_str_expr name] ^
+              " were null"] in
   let variant_type = Ast_helper.(
       Typ.variant
-        (List.map (fun (name, _) -> Rtag (name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }])) fields)
+        (List.map (fun (name, _) -> Rtag (String.capitalize name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }])) fields)
         Closed None) in
   [%expr match Js.Json.decodeObject value with
-    | None -> raise (Graphql_error ("Expected type " ^ [%e const_str_expr name] ^ " to be an object"))
+    | None -> [%e make_error_raiser config [%expr "Expected type " ^ [%e const_str_expr name] ^ " to be an object"]]
     | Some value -> ([%e generator_loop fields]: [%t variant_type])] [@metaloc loc]
 
-and generate_poly_variant_union loc name fragments exhaustive_flag =
+and generate_poly_variant_union config loc name fragments exhaustive_flag =
   let fragment_cases = Ast_helper.(
       fragments
       |> List.map (fun (type_name, inner) -> 
           let name_pattern = Pat.constant (Const_string (type_name, None)) in
-          let variant = Ast_helper.(Exp.variant type_name (Some (generate_decoder inner))) in
+          let variant = Ast_helper.(Exp.variant type_name (Some (generate_decoder config inner))) in
           Exp.case name_pattern variant)) in
   let fallback_case, fallback_case_ty = Ast_helper.(match exhaustive_flag with
       | Result_structure.Exhaustive ->
         (Exp.case
            (Pat.var { loc = Location.none; txt = "typename" })
-           [%expr raise (Graphql_error (
-               "Union " ^ [%e const_str_expr name] ^
-               " returned unknown type " ^ typename))],
+           (make_error_raiser config [%expr
+              "Union " ^ [%e const_str_expr name] ^
+              " returned unknown type " ^ typename]),
          [ ])
       | Nonexhaustive -> 
         (Exp.case (Pat.any ()) [%expr `Nonexhaustive]), [Rtag ("Nonexhaustive", [], true, [])]) in
@@ -241,13 +266,13 @@ and generate_poly_variant_union loc name fragments exhaustive_flag =
                                        (List.concat [ fragment_cases; [ fallback_case ]])) in
   [%expr
     match Js.Json.decodeObject value with
-    | None -> raise (Graphql_error ("Expected union " ^ [%e const_str_expr name] ^ " to be an object, got " ^ (Js.Json.stringify value)))
+    | None -> [%e make_error_raiser config [%expr "Expected union " ^ [%e const_str_expr name] ^ " to be an object, got " ^ (Js.Json.stringify value)]]
     | Some typename_obj -> match Js.Dict.get typename_obj "__typename" with
-      | None -> raise (Graphql_error (
+      | None -> [%e make_error_raiser config [%expr
           "Union " ^ [%e const_str_expr name] ^
-          " is missing the __typename field"))
+          " is missing the __typename field"]]
       | Some typename -> match Js.Json.decodeString typename with
-        | None -> raise (Graphql_error (
+        | None -> [%e make_error_raiser config [%expr
             "Union " ^ [%e const_str_expr name] ^
-            " has a __typename field that is not a string"))
+            " has a __typename field that is not a string"]]
         | Some typename -> ([%e typename_matcher]: [%t union_ty])] [@metaloc loc]

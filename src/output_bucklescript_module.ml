@@ -47,29 +47,37 @@ let make_printed_query config document =
   ]
 
 let generate_default_operation config variable_defs has_error operation res_structure =
-  let parse_fn = Output_bucklescript_decoder.generate_decoder res_structure in
+  let parse_fn = Output_bucklescript_decoder.generate_decoder config res_structure in
   if has_error then
     [ [%stri let parse = fun value -> [%e parse_fn]] ]
   else
     let (rec_flag, encoders) = 
-      Variable_encoder.generate_encoders config (Result_structure.res_loc res_structure) variable_defs in
+      Output_bucklescript_encoder.generate_encoders config (Result_structure.res_loc res_structure) variable_defs in
     let make_fn, make_with_variables_fn = Unifier.make_make_fun config variable_defs in
     List.concat [
       make_printed_query config [Graphql_ast.Operation operation];
-      [
-        [%stri let parse = fun value -> [%e parse_fn]];
-        {
-          pstr_desc = (Pstr_value (rec_flag, encoders));
-          pstr_loc = Location.none;
-        };
-        [%stri let make = [%e make_fn]];
-        [%stri let makeWithVariables = [%e make_with_variables_fn]];
+      List.concat [
+        [ [%stri let parse = fun value -> [%e parse_fn]] ];
+        (if rec_flag = Recursive then
+           [{
+             pstr_desc = (Pstr_value (rec_flag, encoders |> Array.to_list));
+             pstr_loc = Location.none;
+           }]
+         else 
+           encoders
+           |> Array.map (fun encoder -> { pstr_desc = (Pstr_value (Nonrecursive, [encoder])); pstr_loc = Location.none })
+           |> Array.to_list
+        );
+        [
+          [%stri let make = [%e make_fn]];
+          [%stri let makeWithVariables = [%e make_with_variables_fn]];
+        ];
       ];
       ret_type_magic
     ]
 
 let generate_fragment_module config name required_variables has_error fragment res_structure =
-  let parse_fn = Output_bucklescript_decoder.generate_decoder res_structure in
+  let parse_fn = Output_bucklescript_decoder.generate_decoder config res_structure in
   let variable_names = find_variables config [Graphql_ast.Fragment fragment] |> StringSet.elements in
   let variable_fields = variable_names |> List.map (fun name ->
       (name, [], Ast_helper.Typ.constr { txt = Longident.Lident "unit"; loc = Location.none} [])) in
@@ -99,11 +107,6 @@ let generate_operation config = function
   | Mod_default_operation (vdefs, has_error, operation, structure) -> generate_default_operation config vdefs has_error operation structure
   | Mod_fragment (name, req_vars, has_error, fragment, structure) -> generate_fragment_module config name req_vars has_error fragment structure
 
-let preamble =
-  [
-    [%stri exception Graphql_error of string];
-  ]
-
 let generate_modules config operations =
   let generated = List.map (generate_operation config) operations in
-  Mod.mk (Pmod_structure (List.concat (preamble :: generated)))
+  Mod.mk (Pmod_structure (List.concat generated))

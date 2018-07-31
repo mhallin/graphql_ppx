@@ -7,12 +7,6 @@ type native_type_ref =
   | Ntr_nullable of native_type_ref
   | Ntr_list of native_type_ref
 
-let rec unwrapped_type_name_of_native_type_ref = 
-  function
-  | Ntr_named s -> s
-  | Ntr_nullable x -> unwrapped_type_name_of_native_type_ref x
-  | Ntr_list x -> unwrapped_type_name_of_native_type_ref x
-
 let rec to_native_type_ref tr = match tr with
   | NonNull (Named n) -> Ntr_named n
   | NonNull (List l) -> Ntr_list (to_native_type_ref l)

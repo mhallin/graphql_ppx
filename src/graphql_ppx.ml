@@ -67,15 +67,24 @@ let mapper argv =
   let open Location in
   let open Asttypes in
 
-  let is_ast_output = match List.find ((=) "-ast-out") argv with
-    | _ -> true
-    | exception Not_found -> false
-  in
-
   let () = 
   Log.is_verbose := match List.find ((=) "-verbose") argv with
     | _ -> true
     | exception Not_found -> false
+  in
+
+  let output_mode = match List.find ((=) "-ast-out") argv with
+    | _ -> Generator_utils.Apollo_AST
+    | exception Not_found -> Generator_utils.String
+  in
+
+  let verbose_error_handling = match List.find ((=) "-o") argv with
+    | _ -> false
+    | exception Not_found -> begin match Sys.getenv "NODE_ENV" with
+        | "production" -> false
+        | _ -> true
+        | exception Not_found -> true
+      end
   in
 
   let here_dir = Sys.getcwd() in
@@ -108,10 +117,11 @@ let mapper argv =
                 let config = {
                   Generator_utils.map_loc = add_loc delimLength loc;
                   delimiter = delim;
-                  output_mode = if is_ast_output then Generator_utils.Apollo_AST else Generator_utils.String;
+                  output_mode;
                   full_document = document;
                   (*  the only call site of schema, make it lazy! *)
                   schema = Lazy.force (Read_schema.get_schema here_dir here_scheme_path);
+                  verbose_error_handling;
                 } in
                 match Validations.run_validators config document with
                 | Some errs ->

@@ -1,7 +1,14 @@
 {
-  "name": "graphql_ppx_test",
-  "sources": ["types"],
-  "ppx-flags": [ "../graphql_ppx.exe" ],
-  "refmt": 3,
-  "bsc-flags": ["-bs-super-errors"]
+    "name": "graphql_ppx_test",
+    "sources": [
+        "__tests__"
+    ],
+    "ppx-flags": [
+        "../graphql_ppx.exe"
+    ],
+    "bs-dependencies": [
+        "@glennsl/bs-jest"
+    ],
+    "refmt": 3,
+    "bsc-flags": [ "-bs-super-errors" ]
 }
