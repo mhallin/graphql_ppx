@@ -78,7 +78,10 @@ using the standard OCaml syntax works as well.
 
 This plugin requires a `graphql_schema.json` file to exist somewhere in the
 project hierarchy, containing the result of sending an [introspection
-query](https://github.com/graphql/graphql-js/blob/master/src/utilities/introspectionQuery.js) to your backend.
+query](https://github.com/graphql/graphql-js/blob/master/src/utilities/introspectionQuery.js) to your backend. 
+
+See [Generating GraphQL schema](#generating-graphql-schema) section for more detail about how to generate one.
+
 
 #### Custom schema name
 
@@ -93,6 +96,13 @@ Even though we are searching for `graphql_schema.json` by default, you can pass 
 ```
 
 Noted that you could pass `-schema=../somedir/your_schema.json` as well. But it might result into some path parsing problem of BuckleScript/Merlin.
+
+#### Add `.graphql_ppx_cache` into your `.gitignore`
+
+This plugin will generate a `.graphql_ppx_cache` dir alongside your Json schema to optimize its performance for BuckleScript and Merlin. If you're using any version control system, you don't want to check it in.
+
+
+### Generating GraphQL schema
 
 #### Download the server schema
 
