@@ -1,3 +1,5 @@
+exception Schema_file_not_found
+
 let typename_field = {
   Schema.fm_name = "__typename";
   fm_description = None;
@@ -198,8 +200,61 @@ let make_schema_meta v =
                            |> to_option (fun s -> s |> member "name" |> to_string);
   }
 
-let read_schema_file name =
-  let result = Yojson.Basic.from_file name in
+let rec find_file_towards_root dir file =
+  let here_file = Filename.concat dir file in
+  Log.log ("[read_schema][here_file] " ^ here_file);
+
+  if Sys.file_exists here_file then
+    let () = Log.log ("[read_schema][found] "^here_file) in
+    Some here_file
+  else if Filename.dirname dir = dir then
+    None
+  else 
+    find_file_towards_root (Filename.dirname dir) file
+
+exception Ppx_cache_dir_is_not_dir
+
+let create_dir_if_not_exist abs_path =
+  if Sys.file_exists abs_path then
+    let file_stat = Unix.stat abs_path in
+    Unix.(
+      match file_stat.st_kind with
+      | S_DIR -> ()
+      | _ -> raise Ppx_cache_dir_is_not_dir
+    )
+  else
+    let () = Log.log ("[make_cache_dir]"^abs_path) in
+    match Unix.mkdir abs_path 0o755 with
+    | () -> ()
+    | exception Unix.Unix_error (error, cmd, msg) -> begin
+      Log.must_log ((Unix.error_message error)^" "^cmd^" "^msg);
+      match error with
+      | Unix.EEXIST -> () (* It's Ok since the build tool e.g. BuckleScript could be multi-threading *)
+      | error -> raise (Unix.Unix_error(error, cmd, msg))
+    end
+
+(**
+ * Naming Explaniation
+ *
+ * json_schema_rel: the path passed in from bsconfig.json "schema" flag
+ * json_schema: the absolute path of confirmed-exist json schema
+ * marshaled_schema: the absolute path of marshaled schema
+ *)
+let ppx_cache_dir = ".graphql_ppx_cache/"
+
+let get_ppx_cache_path suffix relative_to = 
+  let dir = (Filename.dirname relative_to) in
+  let cache_dir_path = (Filename.concat dir ppx_cache_dir) in
+  let () = create_dir_if_not_exist cache_dir_path in
+  let name = ((Filename.basename relative_to)^suffix) in
+  Filename.concat dir (ppx_cache_dir^name)
+
+let get_marshaled_path = get_ppx_cache_path ".marshaled"
+let get_hash_path = get_ppx_cache_path ".hash"
+
+let parse_json_schema json_schema =
+  Log.log ("[parse json schema] "^json_schema);
+  let result = Yojson.Basic.from_file json_schema in
   let open Yojson.Basic.Util in
   let open Schema in
   let schema = result |> member "data" |> member "__schema" in
@@ -208,3 +263,60 @@ let read_schema_file name =
     type_map = schema |> member "types" |> to_list |> Array.of_list |> make_type_map;
     directive_map = schema |> member "directives" |> to_list |> Array.of_list |> make_directive_map;
   }
+
+(* marshaled schema would be placed in `.graphql_ppx_cache` dir relatively to json_schema *)
+let create_marshaled_schema json_schema data =
+  let marshaled_schema = (get_marshaled_path json_schema) in
+  Log.log ("[write marshaled] "^marshaled_schema);
+  match open_out marshaled_schema with
+  | exception Sys_error msg -> Log.must_log ("[write marshaled][Sys_error]: "^msg); raise (Sys_error msg)
+  | outc -> begin
+    Marshal.to_channel outc data [];
+    close_out outc
+  end
+
+(* build_schema: parse json schema and create marshaled schema *)
+let build_schema json_schema = 
+  json_schema
+  |> parse_json_schema
+  |> create_marshaled_schema (json_schema)
+
+let build_schema_if_dirty json_schema = 
+  Dirty_checker.(
+    make(json_schema)
+    |> verbose(!Log.is_verbose)
+    |> set_hash_path (get_hash_path json_schema)
+    |> on_dirty (build_schema)
+    |> check
+  )
+
+let rec read_marshaled_schema json_schema =
+  let marshaled_schema = (get_marshaled_path json_schema) in
+  Log.log ("[read marshaled] "^marshaled_schema);
+  match open_in marshaled_schema with
+  | exception Sys_error msg -> Log.must_log ("[read marshaled][Sys_error]: "^msg); raise (Sys_error msg)
+  | file -> begin
+    let data = match Marshal.from_channel file with
+      | data -> data
+      | exception _ -> recovery_build json_schema
+    in
+    close_in file; data
+  end
+
+and recovery_build json_schema = 
+  let () = Log.must_log "Marshaled file is broken. Doing recovery build..." in
+  let () = Sys.remove (get_hash_path json_schema) in
+  (* we don't remove marshal file since it might result in race condition, 
+   * we simply let every thread noticed the broken marshal file rewrite to it *)
+  build_schema_if_dirty json_schema;
+  read_marshaled_schema (json_schema) 
+
+(* lazily read schema and check if schema file existed *)
+let get_schema dir json_schema_rel = lazy (
+  match find_file_towards_root dir json_schema_rel with 
+    | None -> raise Schema_file_not_found
+    | Some json_schema -> 
+      build_schema_if_dirty json_schema;
+      read_marshaled_schema (json_schema) 
+)
+

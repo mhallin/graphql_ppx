@@ -38,20 +38,24 @@ let fmt_parse_err err =
   | Unexpected_end_of_file -> "Unexpected end of query"
   | Lexer_error err -> fmt_lex_err err
 
-let rec find_schema_file dir =
-  let here_file = Filename.concat dir "graphql_schema.json" in
-  if Sys.file_exists here_file then
-    Some here_file
-  else if Filename.dirname dir = dir then
-    None
-  else 
-    find_schema_file (Filename.dirname dir)
-
 let make_error_expr loc message =
   let ext = Ast_mapper.extension_of_error (Location.error ~loc message) in
   Ast_helper.Exp.extension ~loc ext
 
-exception Schema_file_not_found
+let is_prefixed prefix str =
+  let i = 0 in
+  let len = String.length prefix in
+  let j = ref 0 in
+  while !j < len && String.unsafe_get prefix !j =
+                    String.unsafe_get str (i + !j) do
+    incr j
+  done;
+  (!j = len)
+
+let drop_prefix prefix str =
+  let len = String.length prefix in
+  let rest = (String.length str) - len in
+  String.sub str len rest
 
 let mapper argv =
   let open Ast_402 in
@@ -63,9 +67,10 @@ let mapper argv =
   let open Location in
   let open Asttypes in
 
-  let schema = match find_schema_file (Sys.getcwd ()) with
-    | Some filename -> Read_schema.read_schema_file filename
-    | None -> raise Schema_file_not_found
+  let () = 
+  Log.is_verbose := match List.find ((=) "-verbose") argv with
+    | _ -> true
+    | exception Not_found -> false
   in
 
   let output_mode = match List.find ((=) "-ast-out") argv with
@@ -80,6 +85,13 @@ let mapper argv =
         | _ -> true
         | exception Not_found -> true
       end
+  in
+
+  let here_dir = Sys.getcwd() in
+
+  let here_scheme_path = match List.find (is_prefixed "-schema=") argv with
+    | arg -> drop_prefix "-schema=" arg
+    | exception Not_found -> "graphql_schema.json" (* the default path so it won't break backward compatibility *)
   in
 
   let module_expr mapper mexpr = begin
@@ -107,7 +119,8 @@ let mapper argv =
                   delimiter = delim;
                   output_mode;
                   full_document = document;
-                  schema = schema;
+                  (*  the only call site of schema, make it lazy! *)
+                  schema = Lazy.force (Read_schema.get_schema here_dir here_scheme_path);
                   verbose_error_handling;
                 } in
                 match Validations.run_validators config document with
@@ -129,3 +142,4 @@ let mapper argv =
   To_current.copy_mapper { default_mapper with module_expr }
 
 let () = Migrate_parsetree.Compiler_libs.Ast_mapper.register "graphql" (fun argv -> mapper argv)
+
