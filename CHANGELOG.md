@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Improvements
+
+* Large performance improvements when dealing with large schemas ([#43](https://github.com/mhallin/graphql_ppx/pull/43))
+  * The parsed and decoded schema file is now cached in a format that's faster
+    to read
+  * The schema is only read when it's needed, reducing overhead for files
+    containing no queries
+
+### Bugfixes
+
+* Fix comment parsing ([#49](https://github.com/mhallin/graphql_ppx/pull/49))
+
 ## [0.2.6] – 2018-07–24
 
 ### Added
