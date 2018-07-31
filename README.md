@@ -1,8 +1,5 @@
 # GraphQL syntax extension for Bucklescript/ReasonML
 
-> *Work in progress:* only a small subset of GraphQL is implemented and there
-> are probably a lot of bugs.
-
 [![Build Status](https://travis-ci.org/mhallin/graphql_ppx.svg?branch=master)](https://travis-ci.org/mhallin/graphql_ppx)
 [![Build Status](https://ci.appveyor.com/api/projects/status/mqlrgovk67bcc9a9/branch/master?svg=true)](https://ci.appveyor.com/project/mhallin/graphql-ppx)
 ![npm](https://img.shields.io/npm/v/graphql_ppx.svg)
@@ -40,14 +37,6 @@ Second, add the PPX to your `bsconfig.json`:
 }
 ```
 
-**Note**: If you want to use this, make sure to read the limitations at the
-bottom of this readme first!
-
-### Upgrading from older versions
-
-The OPAM package `graphql_ppx` is no longer needed. If you've used an earlier
-version of this PPX you can safely remove this package.
-
 ## Examples
 
 If you add a field that does not exist, you'll get a compiler error on the exact
@@ -74,18 +63,27 @@ using the standard OCaml syntax works as well.
 
 ## Usage
 
-### Set up the GraphQL schema
+### Download the server schema
 
 This plugin requires a `graphql_schema.json` file to exist somewhere in the
 project hierarchy, containing the result of sending an [introspection
-query](https://github.com/graphql/graphql-js/blob/master/src/utilities/introspectionQuery.js) to your backend. 
+query](https://github.com/graphql/graphql-js/blob/master/src/utilities/introspectionQuery.js)
+to your backend. To help you with this, a simple script is included to send this
+query to a server and save the result as `graphql_schema.json` in the current
+directory:
 
-See [Generating GraphQL schema](#generating-graphql-schema) section for more detail about how to generate one.
+```sh
+yarn send-introspection-query http://my-api.example.com/api
+# or, if you use npm
+npm run send-introspection-query http://my-api.example.com/api
+```
 
 
 #### Custom schema name
 
-Even though we are searching for `graphql_schema.json` by default, you can pass your own file name in `bsconfig.json`. **No space around `=` !**
+If you've already got a schema file downloaded for other purposes, you can tell
+graphql_ppx to use that one by updating the "ppx-flags" in `bsconfig.json`.
+Note: no space around the equal sign!
 
 ```json
 {
@@ -95,27 +93,18 @@ Even though we are searching for `graphql_schema.json` by default, you can pass 
 }
 ```
 
-Noted that you could pass `-schema=../somedir/your_schema.json` as well. But it might result into some path parsing problem of BuckleScript/Merlin.
+While you can pass a path higher up the folder structure, like
+`-schema=../somedir/your_schema.json`, you might result into some path parsing
+problems with BuckleScript or Merlin.
 
-#### Add `.graphql_ppx_cache` into your `.gitignore`
+### Ignore `.graphql_ppx_cache` in your version control
 
-This plugin will generate a `.graphql_ppx_cache` dir alongside your Json schema to optimize its performance for BuckleScript and Merlin. If you're using any version control system, you don't want to check it in.
+This plugin will generate a `.graphql_ppx_cache` folder alongside your JSON
+schema to optimize parsing performance for BuckleScript and Merlin. If you're
+using a version control system, you don't need to check it in.
 
 
-### Generating GraphQL schema
-
-#### Download the server schema
-
-To help you with this, a simple script is included to send this query to a
-server and save the result as `graphql_schema.json` in the current directory.
-
-```sh
-yarn send-introspection-query http://my-api.example.com/api
-# or, if you use npm
-npm run send-introspection-query http://my-api.example.com/api
-```
-
-#### Send queries
+### Send queries
 
 To define a query, you declare a new module and type the query as a string
 inside the `graphql` extension:
@@ -369,9 +358,10 @@ module MyQuery = [%graphql {| { hero { name height }} |}];
 type resultType = MyQuery.t;
 ```
 
-### Verbose mode (Contributers only)
+### Verbose mode (Contributors only)
 
-You can pass `-verbose` in `bsconfig.json` to turn on the verbose mode. You can also use the `Log` module to log into verbose mode.
+You can pass `-verbose` in `bsconfig.json` to turn on the verbose mode. You can
+also use the `Log` module to log into verbose mode.
 
 ## Future work
 
