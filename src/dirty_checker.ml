@@ -21,14 +21,14 @@ let hash file =
 
 let read_hash src =
   let () = log ("[read hash from] "^src) in
-  let hash_file = open_in src in
+  let hash_file = open_in_bin src in
   let hash = Digest.input hash_file in
   close_in hash_file;
   hash
 
 let write_hash hash dest =
   let () = log ("[write hash to] "^dest) in
-  let dest = open_out dest in
+  let dest = open_out_bin dest in
   Digest.output dest hash;
   close_out dest
 

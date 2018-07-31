@@ -268,7 +268,7 @@ let parse_json_schema json_schema =
 let create_marshaled_schema json_schema data =
   let marshaled_schema = (get_marshaled_path json_schema) in
   Log.log ("[write marshaled] "^marshaled_schema);
-  match open_out marshaled_schema with
+  match open_out_bin marshaled_schema with
   | exception Sys_error msg -> Log.must_log ("[write marshaled][Sys_error]: "^msg); raise (Sys_error msg)
   | outc -> begin
     Marshal.to_channel outc data [];
@@ -293,7 +293,7 @@ let build_schema_if_dirty json_schema =
 let rec read_marshaled_schema json_schema =
   let marshaled_schema = (get_marshaled_path json_schema) in
   Log.log ("[read marshaled] "^marshaled_schema);
-  match open_in marshaled_schema with
+  match open_in_bin marshaled_schema with
   | exception Sys_error msg -> Log.must_log ("[read marshaled][Sys_error]: "^msg); raise (Sys_error msg)
   | file -> begin
     let data = match Marshal.from_channel file with
