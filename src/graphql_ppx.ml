@@ -72,11 +72,17 @@ let mapper argv =
     | exception Not_found -> false
   in
 
+  let () = 
+  Log.is_verbose := match List.find ((=) "-verbose") argv with
+    | _ -> true
+    | exception Not_found -> false
+  in
+
   let here_dir = Sys.getcwd() in
 
-  let here_scheme_path = match List.find (is_prefixed "-path=") argv with
-    | arg -> drop_prefix "-path=" arg
-    | exception Not_found -> "graphql_schema.json"
+  let here_scheme_path = match List.find (is_prefixed "-schema=") argv with
+    | arg -> drop_prefix "-schema=" arg
+    | exception Not_found -> "graphql_schema.json" (* the default path so it won't break backward compatibility *)
   in
 
   let module_expr mapper mexpr = begin
@@ -104,7 +110,7 @@ let mapper argv =
                   delimiter = delim;
                   output_mode = if is_ast_output then Generator_utils.Apollo_AST else Generator_utils.String;
                   full_document = document;
-                  (*  the only call site of scheme, make it lazy! *)
+                  (*  the only call site of schema, make it lazy! *)
                   schema = Lazy.force (Read_schema.get_schema here_dir here_scheme_path);
                 } in
                 match Validations.run_validators config document with
@@ -126,3 +132,4 @@ let mapper argv =
   To_current.copy_mapper { default_mapper with module_expr }
 
 let () = Migrate_parsetree.Compiler_libs.Ast_mapper.register "graphql" (fun argv -> mapper argv)
+

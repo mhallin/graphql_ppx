@@ -9,8 +9,9 @@ let global_options = {
 let verbose b checker =
   let () = global_options.verbose <- b in checker
 
-let log msg = if global_options.verbose then print_endline msg
-let must_log msg = print_endline msg
+let log_head = "[dirty_checker]"
+let log msg = if global_options.verbose then print_endline (log_head^msg)
+let must_log msg = print_endline (log_head^msg)
 
 exception File_not_found
 

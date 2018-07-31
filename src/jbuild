@@ -3,6 +3,7 @@
 (executable
  ((name graphql_ppx)
   (libraries (ocaml-migrate-parsetree
+              unix
               result
               yojson
               ppx_tools_versioned.metaquot_402))

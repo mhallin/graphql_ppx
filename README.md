@@ -74,12 +74,27 @@ using the standard OCaml syntax works as well.
 
 ## Usage
 
-### Download the server schema
+### Set up the GraphQL schema
 
 This plugin requires a `graphql_schema.json` file to exist somewhere in the
 project hierarchy, containing the result of sending an [introspection
-query](https://github.com/graphql/graphql-js/blob/master/src/utilities/introspectionQuery.js)
-to your backend.
+query](https://github.com/graphql/graphql-js/blob/master/src/utilities/introspectionQuery.js) to your backend.
+
+#### Custom schema name
+
+Even though we are searching for `graphql_schema.json` by default, you can pass your own file name in `bsconfig.json`. **No space around `=` !**
+
+```json
+{
+  "ppx-flags": [
+    "graphql_ppx/ppx\\ -schema=your_schema.json"
+  ]
+}
+```
+
+Noted that you could pass `-schema=../somedir/your_schema.json` as well. But it might result into some path parsing problem of BuckleScript/Merlin.
+
+#### Download the server schema
 
 To help you with this, a simple script is included to send this query to a
 server and save the result as `graphql_schema.json` in the current directory.
@@ -90,7 +105,7 @@ yarn send-introspection-query http://my-api.example.com/api
 npm run send-introspection-query http://my-api.example.com/api
 ```
 
-### Send queries
+#### Send queries
 
 To define a query, you declare a new module and type the query as a string
 inside the `graphql` extension:
@@ -306,7 +321,7 @@ let x =
 This helps with the fairly common pattern for mutations that can fail with
 user-readable errors.
 
-## Alternative `Query.make` syntax
+### Alternative `Query.make` syntax
 
 When you define a query with variables, the `make` function will take
 corresponding labelled arguments. This is convenient when constructing and
@@ -330,7 +345,7 @@ let query = MyQuery.make(~username="testUser", password="supersecret", ());
 let query = MyQuery.makeWithVariables({ "username": "testUser", "password": "supersecret" });
 ```
 
-## Getting the type of the parsed value
+### Getting the type of the parsed value
 
 If you want to get the type of the parsed and decoded value - useful in places
 where you can't use OCaml's type inference - use the `t` type of the query
@@ -343,6 +358,10 @@ module MyQuery = [%graphql {| { hero { name height }} |}];
 /* This is something like Js.t({ . hero: Js.t({ name: string, weight: float }) }) */
 type resultType = MyQuery.t;
 ```
+
+### Verbose mode (Contributers only)
+
+You can pass `-verbose` in `bsconfig.json` to turn on the verbose mode. You can also use the `Log` module to log into verbose mode.
 
 ## Future work
 

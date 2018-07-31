@@ -1,7 +1,7 @@
 {
   "name": "graphql_ppx_test",
   "sources": ["types"],
-  "ppx-flags": ["../graphql_ppx.exe\\ -path=graphql_schema.json"],
+  "ppx-flags": [ "../graphql_ppx.exe" ],
   "refmt": 3,
   "bsc-flags": ["-bs-super-errors"]
 }
