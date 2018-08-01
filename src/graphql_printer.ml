@@ -13,6 +13,11 @@ open Schema
   of validation logic :/
 *)
 
+type t =
+  | Empty
+  | String of string
+  | FragmentRef of string
+
 let rec type_ref_name = function
   | Named n -> n
   | NonNull t -> type_ref_name t
@@ -53,7 +58,7 @@ let print_directives ds =
          |> String.concat " ") ^ " "
 
 let print_fragment_spread s =
-  "..." ^ s.fs_name.item ^ " " ^ (print_directives s.fs_directives)
+  [| String "..."; FragmentRef s.fs_name.item; String (" " ^ print_directives s.fs_directives) |] 
 
 let rec print_type ty = match ty with
   | Tr_named n -> n.item
@@ -62,10 +67,19 @@ let rec print_type ty = match ty with
   | Tr_non_null_named n -> n.item ^ "!"
 
 let rec print_selection_set schema ty ss = match ss with
-  | [] -> ""
+  | [] -> [||]
   | l ->
     let add_typename = match ty with | Interface _ | Union _ -> true | _ -> false in
-    "{\n" ^ (if add_typename then "__typename\n" else "") ^ (List.map (print_selection schema ty) l |> String.concat "\n") ^ "\n}"
+    Array.concat [
+      [|
+        String "{\n";
+        (if add_typename then String "__typename\n" else Empty);
+      |];
+      (l |> List.map (fun s -> Array.append (print_selection schema ty s) [| String "\n" |]) |> Array.concat);
+      [|
+        String "}\n"
+      |]
+    ]
 
 and print_selection schema ty s = match s with 
   | Field { item } -> print_field schema ty item
@@ -80,19 +94,25 @@ and print_field schema ty f =
   in
   let field_ty = (List.find (fun fm -> fm.fm_name = f.fd_name.item) ty_fields).fm_field_type
                  |> type_ref_name |> lookup_type schema |> Option.unsafe_unwrap in
-  (match f.fd_alias with | Some {item} -> item ^ ": " | None -> "") ^
-  f.fd_name.item ^
-  (match f.fd_arguments with | Some {item} -> print_arguments item | None -> "") ^
-  (print_directives f.fd_directives) ^
-  (match f.fd_selection_set with | Some {item} -> print_selection_set schema field_ty item | None -> "")
+  Array.append
+    [|
+      (match f.fd_alias with | Some {item} -> String (item ^ ": ") | None -> Empty);
+      String f.fd_name.item;
+      (match f.fd_arguments with | Some {item} -> String (print_arguments item) | None -> Empty);
+      String (print_directives f.fd_directives);
+    |]
+    (match f.fd_selection_set with | Some {item} -> print_selection_set schema field_ty item | None -> [| |])
 
 
 and print_inline_fragment schema ty f =
   let inner_ty = match f.if_type_condition with | Some {item} -> lookup_type schema item |> Option.unsafe_unwrap | None -> ty in
-  "..." ^ 
-  (match f.if_type_condition with | Some {item} -> "on " ^ item ^ " " | None -> " ") ^
-  (print_directives f.if_directives) ^
-  (print_selection_set schema inner_ty f.if_selection_set.item)
+  Array.append
+    [|
+      String "...";
+      String (match f.if_type_condition with | Some {item} -> "on " ^ item ^ " " | None -> " ");
+      String (print_directives f.if_directives);
+    |]
+    (print_selection_set schema inner_ty f.if_selection_set.item)
 
 let print_variable_definition (name, def) = Printf.sprintf "$%s: %s%s"
     name.item
@@ -107,19 +127,57 @@ let print_operation schema op =
     | Query -> schema.meta.sm_query_type
     | Mutation -> Option.unsafe_unwrap schema.meta.sm_mutation_type
     | Subscription -> Option.unsafe_unwrap schema.meta.sm_subscription_type in
-  (match op.o_type with | Query -> "query " | Mutation -> "mutation " | Subscription -> "subscription ") ^
-  (match op.o_name with | Some { item } -> item | None -> "") ^
-  (match op.o_variable_definitions with | Some { item } -> print_variable_definitions item | None -> "") ^
-  (print_directives op.o_directives) ^
-  (print_selection_set schema (lookup_type schema ty_name |> Option.unsafe_unwrap) op.o_selection_set.item)
+  Array.append 
+    [|
+      String (match op.o_type with | Query -> "query " | Mutation -> "mutation " | Subscription -> "subscription ");
+      (match op.o_name with | Some { item } -> String item | None -> Empty);
+      (match op.o_variable_definitions with | Some { item } -> String (print_variable_definitions item) | None -> Empty);
+      String (print_directives op.o_directives);
+    |]
+    (print_selection_set schema (lookup_type schema ty_name |> Option.unsafe_unwrap) op.o_selection_set.item)
 
 let print_fragment schema f =
-  "fragment " ^ f.fg_name.item ^ " on " ^ f.fg_type_condition.item ^ " " ^
-  (print_directives f.fg_directives) ^
-  (print_selection_set schema (lookup_type schema f.fg_type_condition.item |> Option.unsafe_unwrap) f.fg_selection_set.item)
+  Array.append
+    [|
+      String ("fragment " ^ f.fg_name.item ^ " on " ^ f.fg_type_condition.item ^ " ");
+      String (print_directives f.fg_directives);
+    |]
+    (print_selection_set schema (lookup_type schema f.fg_type_condition.item |> Option.unsafe_unwrap) f.fg_selection_set.item)
 
 let print_definition schema def = match def with
   | Operation { item = operation } -> print_operation schema operation
   | Fragment { item = fragment } -> print_fragment schema fragment
 
-let print_document schema defs = List.map (print_definition schema) defs |> String.concat "\n\n"
+let generate_expr acc = Ast_402.(function
+    | Empty -> acc
+    | String s -> Ast_helper.(Exp.apply
+                                (Exp.ident { Location.txt = Longident.parse "^"; loc = Location.none })
+                                [ "", acc; "", Exp.constant (Asttypes.Const_string (s, None)) ])
+    | FragmentRef f -> Ast_helper.(Exp.apply
+                                     (Exp.ident { Location.txt = Longident.parse "^"; loc = Location.none })
+                                     [ "", acc; "", Exp.ident { Location.txt = Longident.parse (f ^ ".name"); loc = Location.none }]))
+
+module StringSet = Set.Make(String)
+
+let find_fragment_refs parts =
+  parts
+  |> Array.fold_left
+    (fun acc -> function
+       | Empty -> acc
+       | String _ -> acc
+       | FragmentRef r -> StringSet.add r acc)
+    StringSet.empty
+  |> StringSet.elements
+
+let append_fragment_ref acc name = Ast_402.Ast_helper.(
+    Exp.apply
+      (Exp.ident { Location.txt = Longident.parse "^"; loc = Location.none })
+      [ "", acc; "", Exp.ident { Location.txt = Longident.parse (name ^ ".query"); loc = Location.none } ])
+
+let print_document schema defs =
+  let parts = defs
+              |> List.map (print_definition schema)
+              |> Array.concat in
+  let fragment_refs = find_fragment_refs parts in
+  let start_expr = Array.fold_left generate_expr Ast_402.(Ast_helper.Exp.constant (Asttypes.Const_string ("", None))) parts in
+  List.fold_left append_fragment_ref start_expr fragment_refs

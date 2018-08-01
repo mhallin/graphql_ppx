@@ -39,7 +39,7 @@ let make_printed_query config document =
   let source = Graphql_printer.print_document config.schema document in
   let reprinted = match config.output_mode with
     | Apollo_AST -> Ast_serializer_apollo.serialize_document source document
-    | String -> Exp.constant (Const_string (source, config.delimiter))
+    | String -> source
   in
   [
     [%stri let ppx_printed_query = [%e reprinted]];

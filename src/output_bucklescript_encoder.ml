@@ -39,7 +39,6 @@ let sort_variable_types schema variables =
       in loop visit_stack tail
   in
   let () = loop StringSet.empty variables in
-  let () = Queue.iter (fun (_, name) -> Printf.printf "ordered type: %s\n" name) ordered_nodes in
   let ordered_nodes = Array.init
       (Queue.length ordered_nodes)
       (fun _ -> 

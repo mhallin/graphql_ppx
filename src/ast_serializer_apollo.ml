@@ -180,7 +180,7 @@ let serialize_document source defs =
     ("loc", Js.Json.object_(Js.Dict.fromArray([|
       ("start", Js.Json.number(0.0));
       ("end", Js.Json.number([%e Ast_helper.Exp.constant (Const_float (defs |> document_end |> string_of_int))]));
-      ("source", Js.Json.string([%e Ast_helper.Exp.constant (Const_string (source, None))]));
+      ("source", Js.Json.string([%e source ]));
       ("locationOffset", Js.Json.object_(Js.Dict.fromArray([|
         ("column", Js.Json.number(1.0));
         ("line", Js.Json.number(1.0));
