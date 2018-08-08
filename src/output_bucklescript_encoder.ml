@@ -65,6 +65,7 @@ let rec parser_for_type schema loc type_ref =
     | Some (Scalar { sm_name = "Int" }) -> [%expr fun v -> Js.Json.number (float_of_int v)]
     | Some (Scalar { sm_name = "Float" }) -> [%expr Js.Json.number]
     | Some (Scalar { sm_name = "Boolean" }) -> [%expr Js.Json.boolean]
+    | Some (Scalar _) -> [%expr fun v -> v]
     | Some ty ->
       function_name_string ty |> ident_from_string loc
 

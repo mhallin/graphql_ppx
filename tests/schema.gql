@@ -15,6 +15,7 @@ type Query {
     nonrecursiveInput(arg: NonrecursiveInput!): String!
     enumInput(arg: SampleField!): String!
     argNamedQuery(query: Int!): Int!
+    customScalarField(argOptional: CustomScalar, argRequired: CustomScalar!): CustomScalarObject!
 
     dogOrHuman: DogOrHuman!
 
@@ -119,4 +120,11 @@ type NestedObject {
 
 type WithArgField {
     argField(arg1: String, arg2: Int): NestedObject
+}
+
+scalar CustomScalar
+
+type CustomScalarObject {
+    nullable: CustomScalar
+    nonNullable: CustomScalar!
 }
