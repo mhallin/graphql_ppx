@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.7] – 2018–08–08
+
 ### Improvements
 
 * Large performance improvements when dealing with large schemas ([#43](https://github.com/mhallin/graphql_ppx/pull/43))
@@ -13,8 +15,10 @@
 ### Bugfixes
 
 * Fix comment parsing ([#49](https://github.com/mhallin/graphql_ppx/pull/49))
+* Fix custom scalar encoding ([#51](https://github.com/mhallin/graphql_ppx/issues/51))
+* Fix fragment query reprinting ([#52](https://github.com/mhallin/graphql_ppx/issues/52))
 
-## [0.2.6] – 2018-07–24
+## [0.2.6] – 2018–07–24
 
 ### Added
 
@@ -155,7 +159,8 @@
   type
 * `@bsVariant` directive added
 
-[Unreleased]: https://github.com/mhallin/graphql_ppx/compare/0.2.6...HEAD
+[Unreleased]: https://github.com/mhallin/graphql_ppx/compare/0.2.7...HEAD
+[0.2.7]:      https://github.com/mhallin/graphql_ppx/compare/0.2.6...0.2.7
 [0.2.6]:      https://github.com/mhallin/graphql_ppx/compare/0.2.5...0.2.6
 [0.2.5]:      https://github.com/mhallin/graphql_ppx/compare/0.2.4...0.2.5
 [0.2.4]:      https://github.com/mhallin/graphql_ppx/compare/0.2.3...0.2.4
