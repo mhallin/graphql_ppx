@@ -86,6 +86,7 @@ let rec generate_decoder config = function
   | Res_object (loc, name, fields) -> generate_object_decoder config loc name fields
   | Res_poly_variant_selection_set (loc, name, fields) -> generate_poly_variant_selection_set config loc name fields
   | Res_poly_variant_union (loc, name, fragments, exhaustive) -> generate_poly_variant_union config loc name fragments exhaustive
+  | Res_poly_variant_interface (loc, name, fragments) -> generate_poly_variant_interface config loc name fragments
   | Res_solo_fragment_spread (loc, name) -> generate_solo_fragment_spread loc name
   | Res_error (loc, message) -> generate_error loc message
 
@@ -240,6 +241,40 @@ and generate_poly_variant_selection_set config loc name fields =
     | None -> [%e make_error_raiser config [%expr "Expected type " ^ [%e const_str_expr name] ^ " to be an object"]]
     | Some value -> ([%e generator_loop fields]: [%t variant_type])] [@metaloc loc]
 
+and generate_poly_variant_interface config loc name fragments =
+  let fragment_cases = Ast_helper.(
+      fragments
+      |> List.map (fun (type_name, inner) -> 
+          let name_pattern = Pat.constant (Const_string (type_name, None)) in
+          let variant = Ast_helper.(Exp.variant type_name (Some (generate_decoder config inner))) in
+          Exp.case name_pattern variant)) in
+  let fallback_case, fallback_case_ty = 
+        Ast_helper.(Exp.case (Pat.var { loc = Location.none; txt = "typename" })
+            (make_error_raiser config [%expr
+              "Interface " ^ [%e const_str_expr name] ^
+              " returned unknown type " ^ typename]),
+          [ ]) in
+  let fragment_case_tys = List.map
+      (fun (name, _) -> Rtag (name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }])) 
+      fragments in
+  let interface_ty = Ast_helper.(Typ.variant (List.concat [ fallback_case_ty; fragment_case_tys ]) Closed None) in
+  let typename_matcher = Ast_helper.(Exp.match_
+                                        [%expr typename]
+                                        (List.concat [ fragment_cases; [ fallback_case ]])) in
+  [%expr
+    match Js.Json.decodeObject value with
+    | None -> [%e make_error_raiser config
+       [%expr "Expected Interface implementation " ^ [%e const_str_expr name] ^ " to be an object, got " ^ (Js.Json.stringify value)]]
+    | Some typename_obj -> match Js.Dict.get typename_obj "__typename" with
+      | None -> [%e make_error_raiser config [%expr
+          "Interface implementation" ^ [%e const_str_expr name] ^
+          " is missing the __typename field"]]
+      | Some typename -> match Js.Json.decodeString typename with
+        | None -> [%e make_error_raiser config [%expr
+            "Interface implementation " ^ [%e const_str_expr name] ^
+            " has a __typename field that is not a string"]]
+        | Some typename -> ([%e typename_matcher]: [%t interface_ty])] [@metaloc loc]
+  
 and generate_poly_variant_union config loc name fragments exhaustive_flag =
   let fragment_cases = Ast_helper.(
       fragments

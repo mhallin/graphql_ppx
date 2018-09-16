@@ -96,12 +96,7 @@ and unify_interface error_marker as_record config span interface_meta ty selecti
       ) []
     in
     let fields = List.append default_cases fragment_cases in 
-    Res_poly_variant_union (
-      config.map_loc span,
-      interface_meta.im_name,
-      fields,
-      Exhaustive
-    )
+    Res_poly_variant_interface (config.map_loc span, interface_meta.im_name, fields)
 
 and unify_union error_marker config span union_meta selection_set =
   match selection_set with

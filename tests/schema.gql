@@ -17,6 +17,10 @@ type AnonymousUser implements User {
   id: ID!
 }
 
+type OtherUser implements User {
+  id: ID!
+}
+
 type Query {
   stringField: String!
   variousScalars: VariousScalars!

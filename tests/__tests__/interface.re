@@ -23,7 +23,8 @@ Jest.(
             {|{
                "users": [
                 { "__typename": "AdminUser", "id": "1", "name": "bob" },
-                { "__typename": "AnonymousUser", "id": "2"}
+                { "__typename": "AnonymousUser", "id": "2"},
+                { "__typename": "OtherUser", "id": "3"}
             ]}|},
           ),
         ),
@@ -32,6 +33,7 @@ Jest.(
            "users": [|
              `AdminUser({"id": "1", "name": "bob"}),
              `AnonymousUser({"id": "2"}),
+             `OtherUser({"id": "3"}),
            |],
          }
     );
