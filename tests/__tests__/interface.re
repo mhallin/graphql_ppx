@@ -20,17 +20,17 @@ Jest.(
       expect(
         MyQuery.parse(
           Js.Json.parseExn(
-            {|
-            { "users": [
-              { "__typename": "AdminUser", id": "1", "name": "admin" },
-              { "__typename": "AnonymousUser", "id": "2"}
-              ]}|},
+            {|{
+               "users": [
+                { "__typename": "AdminUser", "id": "1", "name": "bob" },
+                { "__typename": "AnonymousUser", "id": "2"}
+            ]}|},
           ),
         ),
       )
       == {
            "users": [|
-             `AdminUser({"id": "1", "name": "admin"}),
+             `AdminUser({"id": "1", "name": "bob"}),
              `AnonymousUser({"id": "2"}),
            |],
          }
