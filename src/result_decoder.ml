@@ -65,30 +65,42 @@ and unify_interface error_marker as_record config span interface_meta ty selecti
         raise_error config.map_loc span "Inline fragments must have a type condition"
       | InlineFragment frag -> (selections, frag :: fragments)
       | selection -> (selection :: selections, fragments)
-      in
-
-    let (base_selection_set, fragments) = List.fold_left unwrap_type_conds ([], []) selection_set.item in
-      
-    let generate_case { item = { if_type_condition = Some if_type_condition; if_selection_set } ; span } =
+    in
+    let (base_selection_set, fragments) =
+      List.fold_left unwrap_type_conds ([], []) selection_set.item
+    in
+    let generate_case selection ty name = (
+        name,
+        Res_object (config.map_loc span, name, List.map (unify_selection error_marker config ty) selection)
+    ) in
+    let generate_fragment_case { item = { if_type_condition = Some if_type_condition; if_selection_set } ; span } =
       let { item } = if_selection_set in
       let selection = List.append base_selection_set item in 
       let ty = match (lookup_type config.schema if_type_condition.item) with
         | Some ty -> ty
         | None -> ty
       in
-      
-      let fields = List.map (unify_selection error_marker config ty) selection in
-      let name = if_type_condition.item in 
-      (
-        name,
-        Res_object (config.map_loc span, name, fields)
-      )
+      generate_case selection ty if_type_condition.item
     in
-      
+    let implementations = lookup_implementations config.schema interface_meta in
+    let fragment_cases = (List.map generate_fragment_case fragments) in
+    let filter_implementation impl = match impl with 
+      | Object { om_name} -> not (List.exists (fun (name, _) -> name = om_name) fragment_cases)
+      | _ -> false
+    in
+    let default_cases = 
+      List.filter filter_implementation implementations
+      |> List.fold_left (fun acc impl -> match impl with 
+        | Object { om_name} as o -> (generate_case base_selection_set o om_name) :: acc
+        | _ -> acc
+      ) []
+    in
+    let fields = List.append default_cases fragment_cases in 
+    let _ = List.map (fun (name, _) -> print_endline name) fields in
     Res_poly_variant_union (
       config.map_loc span,
       interface_meta.im_name,
-      (List.map generate_case fragments),
+      fields,
       Exhaustive
     )
 

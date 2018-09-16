@@ -108,6 +108,13 @@ exception Invalid_type of string
 exception Inconsistent_schema of string
 
 
+let lookup_implementations schema im =  
+  let all_objects_implementing_interface _ value acc = match value with
+    | Object { om_interfaces } as o when List.exists (fun n -> n = im.im_name) om_interfaces -> o :: acc
+    | _ -> acc
+  in
+  Hashtbl.fold all_objects_implementing_interface schema.type_map []
+
 let lookup_field ty name = 
   let find_field fs = 
     match List.find_all (fun f -> f.fm_name = name) fs with
