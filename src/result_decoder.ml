@@ -91,7 +91,7 @@ and unify_interface error_marker as_record config span interface_meta ty selecti
     let default_cases = 
       List.filter filter_implementation implementations
       |> List.fold_left (fun acc impl -> match impl with 
-        | Object { om_name} as o -> (generate_case base_selection_set o om_name) :: acc
+        | Object { om_name} -> (generate_case base_selection_set ty om_name) :: acc
         | _ -> acc
       ) []
     in
