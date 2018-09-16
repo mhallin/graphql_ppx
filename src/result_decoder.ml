@@ -50,10 +50,47 @@ let rec unify_type error_marker as_record config span ty (selection_set: selecti
     | Some ((Object o) as ty) ->
       unify_selection_set error_marker as_record config span ty selection_set
     | Some Enum enum_meta -> Res_poly_enum (config.map_loc span, enum_meta)
-    | Some ((Interface o) as ty) ->
-      unify_selection_set error_marker as_record config span ty selection_set
+    | Some ((Interface im) as ty) ->
+      unify_interface error_marker as_record config span im ty selection_set
     | Some InputObject obj -> make_error error_marker config.map_loc span "Can't have fields on input objects"
     | Some Union um -> unify_union error_marker config span um selection_set
+
+and unify_interface error_marker as_record config span interface_meta ty selection_set =
+  match selection_set with
+  | None -> make_error error_marker config.map_loc span "Interface types must have subselections"
+  | Some selection_set ->
+    let unwrap_type_conds (selections, fragments) selection = 
+      match selection with
+      | InlineFragment { item = { if_type_condition = None }; span } ->
+        raise_error config.map_loc span "Inline fragments must have a type condition"
+      | InlineFragment frag -> (selections, frag :: fragments)
+      | selection -> (selection :: selections, fragments)
+      in
+
+    let (base_selection_set, fragments) = List.fold_left unwrap_type_conds ([], []) selection_set.item in
+      
+    let generate_case { item = { if_type_condition = Some if_type_condition; if_selection_set } ; span } =
+      let { item } = if_selection_set in
+      let selection = List.append base_selection_set item in 
+      let ty = match (lookup_type config.schema if_type_condition.item) with
+        | Some ty -> ty
+        | None -> ty
+      in
+      
+      let fields = List.map (unify_selection error_marker config ty) selection in
+      let name = if_type_condition.item in 
+      (
+        name,
+        Res_object (config.map_loc span, name, fields)
+      )
+    in
+      
+    Res_poly_variant_union (
+      config.map_loc span,
+      interface_meta.im_name,
+      (List.map generate_case fragments),
+      Exhaustive
+    )
 
 and unify_union error_marker config span union_meta selection_set =
   match selection_set with

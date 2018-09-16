@@ -1,130 +1,147 @@
 schema {
-    query: Query
-    mutation: Mutation
-    subscription: Subscription
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+interface User {
+  id: ID!
+}
+
+type AdminUser implements User {
+  id: ID!
+  name: String!
+}
+
+type AnonymousUser implements User {
+  id: ID!
 }
 
 type Query {
-    stringField: String!
-    variousScalars: VariousScalars!
-    lists: Lists!
+  stringField: String!
+  variousScalars: VariousScalars!
+  lists: Lists!
+  users: [User!]!
 
-    scalarsInput(arg: VariousScalarsInput!): String!
-    listsInput(arg: ListsInput!): String!
-    recursiveInput(arg: RecursiveInput!): String!
-    nonrecursiveInput(arg: NonrecursiveInput!): String!
-    enumInput(arg: SampleField!): String!
-    argNamedQuery(query: Int!): Int!
-    customScalarField(argOptional: CustomScalar, argRequired: CustomScalar!): CustomScalarObject!
+  scalarsInput(arg: VariousScalarsInput!): String!
+  listsInput(arg: ListsInput!): String!
+  recursiveInput(arg: RecursiveInput!): String!
+  nonrecursiveInput(arg: NonrecursiveInput!): String!
+  enumInput(arg: SampleField!): String!
+  argNamedQuery(query: Int!): Int!
+  customScalarField(
+    argOptional: CustomScalar
+    argRequired: CustomScalar!
+  ): CustomScalarObject!
 
-    dogOrHuman: DogOrHuman!
+  dogOrHuman: DogOrHuman!
 
-    nestedObject: NestedObject!
+  nestedObject: NestedObject!
 }
 
 type Mutation {
-    mutationWithError: MutationWithErrorResult!
+  mutationWithError: MutationWithErrorResult!
 }
 
 type Subscription {
-    simpleSubscription: DogOrHuman!
+  simpleSubscription: DogOrHuman!
 }
 
 type MutationWithErrorResult {
-    value: SampleResult
-    errors: [SampleError!]
+  value: SampleResult
+  errors: [SampleError!]
 }
 
 type SampleResult {
-    stringField: String!
+  stringField: String!
 }
 
 type SampleError {
-    field: SampleField!
-    message: String!
+  field: SampleField!
+  message: String!
 }
 
 enum SampleField {
-    FIRST
-    SECOND
-    THIRD
+  FIRST
+  SECOND
+  THIRD
 }
 
 type VariousScalars {
-    nullableString: String
-    string: String!
-    nullableInt: Int
-    int: Int!
-    nullableFloat: Float
-    float: Float!
-    nullableBoolean: Boolean
-    boolean: Boolean!
-    nullableID: ID
-    id: ID!
+  nullableString: String
+  string: String!
+  nullableInt: Int
+  int: Int!
+  nullableFloat: Float
+  float: Float!
+  nullableBoolean: Boolean
+  boolean: Boolean!
+  nullableID: ID
+  id: ID!
 }
 
 type Lists {
-    nullableOfNullable: [String]
-    nullableOfNonNullable: [String!]
-    nonNullableOfNullable: [String]!
-    nonNullableOfNonNullable: [String!]!
+  nullableOfNullable: [String]
+  nullableOfNonNullable: [String!]
+  nonNullableOfNullable: [String]!
+  nonNullableOfNonNullable: [String!]!
 }
 
 input VariousScalarsInput {
-    nullableString: String
-    string: String!
-    nullableInt: Int
-    int: Int!
-    nullableFloat: Float
-    float: Float!
-    nullableBoolean: Boolean
-    boolean: Boolean!
-    nullableID: ID
-    id: ID!
+  nullableString: String
+  string: String!
+  nullableInt: Int
+  int: Int!
+  nullableFloat: Float
+  float: Float!
+  nullableBoolean: Boolean
+  boolean: Boolean!
+  nullableID: ID
+  id: ID!
 }
 
 input ListsInput {
-    nullableOfNullable: [String]
-    nullableOfNonNullable: [String!]
-    nonNullableOfNullable: [String]!
-    nonNullableOfNonNullable: [String!]!
+  nullableOfNullable: [String]
+  nullableOfNonNullable: [String!]
+  nonNullableOfNullable: [String]!
+  nonNullableOfNonNullable: [String!]!
 }
 
 input NonrecursiveInput {
-    field: String
-    enum: SampleField
+  field: String
+  enum: SampleField
 }
 
 input RecursiveInput {
-    otherField: String
-    inner: RecursiveInput
-    enum: SampleField
+  otherField: String
+  inner: RecursiveInput
+  enum: SampleField
 }
 
 type Dog {
-    name: String!
-    barkVolume: Float!
+  name: String!
+  barkVolume: Float!
 }
 
 type Human {
-    name: String!
+  name: String!
 }
 
 union DogOrHuman = Dog | Human
 
 type NestedObject {
-    inner: NestedObject
+  inner: NestedObject
 
-    field: String!
+  field: String!
 }
 
 type WithArgField {
-    argField(arg1: String, arg2: Int): NestedObject
+  argField(arg1: String, arg2: Int): NestedObject
 }
 
 scalar CustomScalar
 
 type CustomScalarObject {
-    nullable: CustomScalar
-    nonNullable: CustomScalar!
+  nullable: CustomScalar
+  nonNullable: CustomScalar!
 }
