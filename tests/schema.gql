@@ -8,13 +8,22 @@ interface User {
   id: ID!
 }
 
-type AdminUser implements User {
+interface Name {
+  name: String!
+}
+
+interface Anonymous {
+  anonymousId: Int!
+}
+
+type AdminUser implements User & Name {
   id: ID!
   name: String!
 }
 
-type AnonymousUser implements User {
+type AnonymousUser implements User & Anonymous {
   id: ID!
+  anonymousId: Int!
 }
 
 type OtherUser implements User {

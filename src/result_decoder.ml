@@ -82,21 +82,9 @@ and unify_interface error_marker as_record config span interface_meta ty selecti
       in
       generate_case selection ty if_type_condition.item
     in
-    let implementations = lookup_implementations config.schema interface_meta in
     let fragment_cases = (List.map generate_fragment_case fragments) in
-    let filter_implementation impl = match impl with 
-      | Object { om_name} -> not (List.exists (fun (name, _) -> name = om_name) fragment_cases)
-      | _ -> false
-    in
-    let default_cases = 
-      List.filter filter_implementation implementations
-      |> List.fold_left (fun acc impl -> match impl with 
-        | Object { om_name} -> (generate_case base_selection_set ty om_name) :: acc
-        | _ -> acc
-      ) []
-    in
-    let fields = List.append default_cases fragment_cases in 
-    Res_poly_variant_interface (config.map_loc span, interface_meta.im_name, fields)
+    let base_case =  (generate_case base_selection_set ty interface_meta.im_name) in
+    Res_poly_variant_interface (config.map_loc span, interface_meta.im_name, base_case, fragment_cases)
 
 and unify_union error_marker config span union_meta selection_set =
   match selection_set with
