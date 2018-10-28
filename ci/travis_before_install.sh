@@ -11,9 +11,10 @@ case "$TRAVIS_OS_NAME" in
         mv bin/darwin/amd64/github-release .
 
         OPAMYES=1 opam init
+        OPAMYES=1 opam switch create 4.02.3
         OPAMYES=1 opam switch 4.02.3
 
-        eval `opam config env`
+        eval $(opam env)
         ;;
     linux)
         source "$HOME/.nvm/nvm.sh"
