@@ -97,12 +97,13 @@ and unify_union error_marker config span union_meta selection_set =
       | InlineFragment frag -> frag
     in
     let type_cond_name { item = { if_type_condition = Some { item }}} = item in
-    let generate_case { item = { if_type_condition = Some if_type_condition; if_selection_set}; span } =
+    let generate_case { item = { if_type_condition = Some if_type_condition; if_selection_set; if_directives }; span } =
       let type_cond_ty = match lookup_type config.schema if_type_condition.item with
         | None -> raise_error config.map_loc if_type_condition.span "Could not find type"
         | Some ty -> ty
       in
-      let result_decoder = unify_selection_set error_marker false config if_selection_set.span type_cond_ty (Some if_selection_set) in
+      let is_record = has_directive "bsRecord" if_directives in
+      let result_decoder = unify_selection_set error_marker is_record config if_selection_set.span type_cond_ty (Some if_selection_set) in
       (if_type_condition.item, result_decoder) in
     let fragments = List.map unwrap_type_conds selection_set.item in
     let covered_cases = List.map type_cond_name fragments |> List.sort compare in
