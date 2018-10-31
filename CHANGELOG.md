@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.2.8] – 2018–10–31
+
+### Added
+
+* Interface support! With some restrictions, you can now query interface fields
+  and have them decoded into polymorphic variants, similar to how unions work.
+  ([#56](https://github.com/mhallin/graphql_ppx/pull/56))
+
+### Bugfixes
+
+* `@bsRecord` on inline fragments on unions did not decode the selection into a
+  record ([#60](https://github.com/mhallin/graphql_ppx/issues/60))
+* Type errors from `@bsRecord` are now reported on their correct source location
+  ([#42](https://github.com/mhallin/graphql_ppx/issues/42))
+
 ## [0.2.7] – 2018–08–08
 
 ### Improvements
@@ -159,7 +174,8 @@
   type
 * `@bsVariant` directive added
 
-[Unreleased]: https://github.com/mhallin/graphql_ppx/compare/0.2.7...HEAD
+[Unreleased]: https://github.com/mhallin/graphql_ppx/compare/0.2.8...HEAD
+[0.2.8]:      https://github.com/mhallin/graphql_ppx/compare/0.2.7...0.2.8
 [0.2.7]:      https://github.com/mhallin/graphql_ppx/compare/0.2.6...0.2.7
 [0.2.6]:      https://github.com/mhallin/graphql_ppx/compare/0.2.5...0.2.6
 [0.2.5]:      https://github.com/mhallin/graphql_ppx/compare/0.2.4...0.2.5

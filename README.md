@@ -197,17 +197,7 @@ let sendQuery = q =>
   );
 ```
 
-# Limitations
-
-This implementation is incomplete. It does *not* support:
-
-* Non-inline fragments of any kind.
-* Interfaces.
-* All GraphQL validations. It will *not* validate argument types and do other
-  sanity-checking of the queries. The fact that a query compiles does not mean
-  that it will pass server-side validation.
-
-# Things that *do* work
+# Features
 
 * Objects are converted into `Js.t` objects
 * Enums are converted into [polymorphic
@@ -220,6 +210,21 @@ This implementation is incomplete. It does *not* support:
   optional.
 * Unions are converted to polymorphic variants, with exhaustiveness checking.
   This only works for object types, not for unions containing interfaces.
+* Interfaces are also converted into polymorphic variants. Overlapping interface
+  selections and other more uncommon use cases are not yet supported.
+* Basic fragment support
+
+# Limitations
+
+While graphql_ppx covers a large portion of the GraphQL spec, there are still
+some unsupported areas:
+
+* Not all GraphQL validations are implemented. It will *not* validate argument
+  types and do other sanity-checking of the queries. The fact that a query
+  compiles does not mean that it will pass server-side validation.
+* Fragment support is limited and not 100% safe - because graphql_ppx only can
+  perform local reasoning on queries, you can construct queries with fragments
+  that are invalid.
 
 ## Extra features
 
@@ -362,19 +367,6 @@ type resultType = MyQuery.t;
 
 You can pass `-verbose` in `bsconfig.json` to turn on the verbose mode. You can
 also use the `Log` module to log into verbose mode.
-
-## Future work
-
-Core GraphQL features that need to be implemented:
-
-- [ ] Inline fragments
-- [ ] Fragment spreads
-- [ ] Selecting on interfaces
-- [X] Selecting on unions
-- [X] Input object arguments
-- [ ] Query validations (only partially implemented)
-- [X] Explicit resolvers for custom scalars
-
 
 ## Experimental: `graphql-tag` replacement
 
