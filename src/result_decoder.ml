@@ -171,12 +171,13 @@ and unify_field error_marker config field_span ty =
       else
         sub_unifier
   in
+  let loc = config.map_loc field_span.span in
   match ast_field.fd_directives |> find_directive "bsDecoder" with
-  | None -> Fr_named_field (key, parser_expr)
+  | None -> Fr_named_field (key, loc, parser_expr)
   | Some { item = { d_arguments }; span } -> match find_argument "fn" d_arguments with
-    | None -> Fr_named_field (key, make_error error_marker config.map_loc span "bsDecoder must be given 'fn' argument")
-    | Some (_, { item = Iv_string fn_name; span }) -> Fr_named_field (key, Res_custom_decoder (config.map_loc span, fn_name, parser_expr))
-    | Some (_, { span }) -> Fr_named_field (key, make_error error_marker config.map_loc span "The 'fn' argument must be a string")
+    | None -> Fr_named_field (key, loc, make_error error_marker config.map_loc span "bsDecoder must be given 'fn' argument")
+    | Some (_, { item = Iv_string fn_name; span }) -> Fr_named_field (key, loc, Res_custom_decoder (config.map_loc span, fn_name, parser_expr))
+    | Some (_, { span }) -> Fr_named_field (key, loc, make_error error_marker config.map_loc span "The 'fn' argument must be a string")
 
 and unify_selection error_marker config ty selection = match selection with
   | Field field_span -> unify_field error_marker config field_span ty

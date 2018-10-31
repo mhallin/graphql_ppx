@@ -127,14 +127,14 @@ and generate_record_decoder config loc name fields =
   let field_name_tuple_pattern = Ast_helper.(
       fields
       |> filter_map (function
-          | Fr_named_field (field, _) -> Some (Pat.var { loc = Location.none; txt = "field_" ^ field })
+          | Fr_named_field (field, _, _) -> Some (Pat.var { loc; txt = "field_" ^ field })
           | Fr_fragment_spread _ -> None)
       |> Pat.tuple) in
 
   let field_decoder_tuple = Ast_helper.(
       fields
       |> filter_map (function
-          | Fr_named_field (field, inner) -> 
+          | Fr_named_field (field, loc, inner) -> 
             Some [%expr match Js.Dict.get value [%e const_str_expr field] with
               | Some value -> [%e generate_decoder config inner]
               | None -> [%e
@@ -143,20 +143,20 @@ and generate_record_decoder config loc name fields =
                 else 
                   make_error_raiser config [%expr
                     "Field " ^ [%e const_str_expr field] ^
-                    " on type " ^ [%e const_str_expr name] ^ " is missing"]]]
+                    " on type " ^ [%e const_str_expr name] ^ " is missing"]]] [@metaloc loc]
           | Fr_fragment_spread _ -> None)
       |> Exp.tuple) in
 
   let record_fields = Ast_helper.(
       fields
       |> List.map (function
-          | Fr_named_field (field, _) ->
-            ({ Location.loc = Location.none; txt = Longident.Lident field}, 
-             Exp.ident { loc = Location.none; txt = Longident.Lident ("field_" ^ field) })
+          | Fr_named_field (field, loc, _) ->
+            ({ Location.loc = loc; txt = Longident.Lident field}, 
+             Exp.ident ~loc { loc; txt = Longident.Lident ("field_" ^ field) })
           | Fr_fragment_spread (field, loc, name) ->
-            ({ Location.loc = Location.none; txt = Longident.Lident field},
-             [%expr let value = Js.Json.object_ value in [%e generate_solo_fragment_spread loc name]]))) in
-  let record = Ast_helper.Exp.record record_fields None in
+            ({ Location.loc = loc; txt = Longident.Lident field},
+             [%expr let value = Js.Json.object_ value in [%e generate_solo_fragment_spread loc name]] [@metaloc loc]))) in
+  let record = Ast_helper.Exp.record ~loc record_fields None in
 
   [%expr match Js.Json.decodeObject value with
     | None -> [%e make_error_raiser config [%expr
@@ -165,11 +165,11 @@ and generate_record_decoder config loc name fields =
         ", got " ^ (Js.Json.stringify value)]]
     | Some value ->
       let [%p field_name_tuple_pattern] = [%e field_decoder_tuple]
-      in [%e record]] [@metaloc loc]
+      in [%e record]]
 
 and generate_object_decoder config loc name fields =
   let ctor_result_type = (List.mapi 
-                            (fun i (Fr_named_field (key, _) | Fr_fragment_spread (key, _, _)) -> (key, [], Ast_helper.Typ.var ("a" ^ (string_of_int i))))
+                            (fun i (Fr_named_field (key, _, _) | Fr_fragment_spread (key, _, _)) -> (key, [], Ast_helper.Typ.var ("a" ^ (string_of_int i))))
                             fields)
   in
   let rec make_obj_constructor_fn i = function
@@ -180,7 +180,7 @@ and generate_object_decoder config loc name fields =
                      Closed)
                 ])
     | Fr_fragment_spread (key, _, _) :: next
-    | Fr_named_field (key, _) :: next -> Ast_helper.Typ.arrow key (Ast_helper.Typ.var ("a" ^ (string_of_int i)))
+    | Fr_named_field (key, _, _) :: next -> Ast_helper.Typ.arrow key (Ast_helper.Typ.var ("a" ^ (string_of_int i)))
                                            (make_obj_constructor_fn (i+1) next) in
   [%expr match Js.Json.decodeObject value with
     | None -> [%e make_error_raiser config [%expr "Object is not a value"]]
@@ -198,7 +198,7 @@ and generate_object_decoder config loc name fields =
           (Ast_helper.Exp.apply (Ast_helper.Exp.ident { txt = Longident.parse "GQL.make_obj"; loc = Location.none})
              (List.append
                 (List.map (function
-                     | Fr_named_field (key, inner) -> 
+                     | Fr_named_field (key, _, inner) -> 
                        (key,
                         [%expr match Js.Dict.get value [%e const_str_expr key] with
                           | Some value -> [%e generate_decoder config inner]

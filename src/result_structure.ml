@@ -3,7 +3,7 @@ type exhaustive_flag = | Exhaustive | Nonexhaustive
 type loc = Ast_402.Location.t
 
 type field_result =
-  | Fr_named_field of string * t
+  | Fr_named_field of string * loc * t
   | Fr_fragment_spread of string * loc * string
 
 and t =
