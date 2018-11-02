@@ -18,8 +18,8 @@ let some_or o d = match o with
   | Some v -> v
   | None -> d
 
-let capitalize_ascii = String.capitalize
-let uncapitalize_ascii = String.uncapitalize
+let capitalize_ascii = Compat.capitalize_ascii
+let uncapitalize_ascii = Compat.uncapitalize_ascii
 
 type output_mode =
   | String

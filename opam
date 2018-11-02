@@ -5,6 +5,7 @@ maintainer: "Magnus Hallin <mhallin@fastmail.com>"
 authors: "Magnus Hallin <mhallin@fastmail.com>"
 homepage: "https://github.com/mhallin/graphql_ppx"
 bug-reports: "https://github.com/mhallin/graphql_ppx/issues"
+description: "PPX to decode GraphQL responses."
 license: "BSD 3-clause"
 dev-repo: "git@github.com:mhallin/graphql_ppx.git"
 tags: ["bucklescript" "reasonml" "ppx" "graphql"]
@@ -18,4 +19,5 @@ depends: [
   "yojson" {build}
   "ppx_tools_versioned" {build}
   "dune" {build}
+  "cppo" {build}
 ]

@@ -6,6 +6,9 @@ build:
 	$(DUNE) build @graphql_ppx
 	cp _build/default/src/graphql_ppx.exe .
 
+buildall:
+	$(DUNE) build --workspace=dune-workspace.dev @graphql_ppx
+
 test: build only-test
 
 only-test: tests/graphql_schema.json tests_apollo/graphql_schema.json
@@ -23,4 +26,4 @@ clean:
 	$(DUNE) clean
 	rm -rf _build graphql_ppx.exe tests/lib
 
-.PHONY: build test only-test clean
+.PHONY: build test only-test clean buildall

@@ -7,3 +7,11 @@
             ppx_tools_versioned.metaquot_402)
  (flags (:include ../discover/dune.flags))
  (preprocess (pps ppx_tools_versioned.metaquot_402)))
+
+(rule
+ (targets build_config.ml)
+ (deps    (:first-dep build_config.cppo.ml))
+  (action
+   (chdir ${ROOT}
+    (run %{bin:cppo} -V OCAML:%{ocaml_version} %{first-dep} -o %{targets})))
+   )

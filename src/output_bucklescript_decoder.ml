@@ -220,7 +220,7 @@ and generate_poly_variant_selection_set config loc name fields =
   let rec generator_loop = function
     | (field, inner) :: next ->
       let variant_decoder = Ast_helper.(Exp.variant
-                                          (String.capitalize field)
+                                          (Compat.capitalize_ascii field)
                                           (Some (generate_decoder config inner))) in
       [%expr match Js.Dict.get value [%e const_str_expr field] with
         | None -> [%e make_error_raiser config [%expr
@@ -235,7 +235,7 @@ and generate_poly_variant_selection_set config loc name fields =
               " were null"] in
   let variant_type = Ast_helper.(
       Typ.variant
-        (List.map (fun (name, _) -> Rtag (String.capitalize name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }])) fields)
+        (List.map (fun (name, _) -> Rtag (Compat.capitalize_ascii name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }])) fields)
         Closed None) in
   [%expr match Js.Json.decodeObject value with
     | None -> [%e make_error_raiser config [%expr "Expected type " ^ [%e const_str_expr name] ^ " to be an object"]]

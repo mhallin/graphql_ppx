@@ -39,6 +39,7 @@ let fmt_parse_err err =
   | Lexer_error err -> fmt_lex_err err
 
 let make_error_expr loc message =
+  let open Ast_402 in
   let ext = Ast_mapper.extension_of_error (Location.error ~loc message) in
   Ast_helper.Exp.extension ~loc ext
 
