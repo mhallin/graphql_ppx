@@ -2,9 +2,9 @@
 /bin
 /graphql_ppx*.exe
 /node_modules
-/tests/lib
-/tests/graphql_schema.json
-/tests/node_modules
+/tests_bucklescript/lib
+/tests_bucklescript/graphql_schema.json
+/tests_bucklescript/node_modules
 /tests_apollo/lib
 /**/.graphql_ppx_cache
 /tests_apollo/graphql_schema.json

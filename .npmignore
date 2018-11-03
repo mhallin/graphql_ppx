@@ -2,7 +2,7 @@
 /.vscode
 /graphql_ppx.exe
 /node_modules
-/tests/lib
+/tests_bucklescript/lib
 /tests_apollo/lib
 /lib
 /ppx

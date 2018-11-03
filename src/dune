@@ -1,5 +1,5 @@
 (executable
- (name graphql_ppx)
+ (name graphql_ppx_bucklescript)
  (libraries ocaml-migrate-parsetree
             unix
             result

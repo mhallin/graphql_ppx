@@ -35,7 +35,7 @@ build_script:
   - call %CYG_ROOT%\bin\bash.exe -l -c "cd /cygdrive/c/projects/graphql-ppx && make build"
 
 test_script:
-  - node node_modules/gql-tools/cli/gqlschema.js -o tests/graphql_schema.json tests/schema.gql
+  - node node_modules/gql-tools/cli/gqlschema.js -o tests_bucklescript/graphql_schema.json tests_bucklescript/schema.gql
   - call %CYG_ROOT%\bin\bash.exe -l -c "cd /cygdrive/c/projects/graphql-ppx && make test"
   - call %CYG_ROOT%\bin\bash.exe -l -c "NODE_ENV=production cd /cygdrive/c/projects/graphql-ppx && make test"
   - move graphql_ppx.exe graphql_ppx-%TARGET_PLATFORM%.exe
