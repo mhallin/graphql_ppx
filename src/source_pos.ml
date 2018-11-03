@@ -11,7 +11,7 @@ type 'a spanning = {
 
 let origin = { index = 0; line = 0; col = 0 }
 
-let advance_line { index; line } =
+let advance_line { index; line; col = _ } =
   { index = index + 1; line = line + 1; col = 0 }
 
 let advance_col { index; line; col } =

@@ -1,5 +1,4 @@
 open Result_structure
-open Schema
 open Generator_utils
 
 open Ast_402
@@ -76,7 +75,7 @@ let generate_default_operation config variable_defs has_error operation res_stru
       ret_type_magic
     ]
 
-let generate_fragment_module config name required_variables has_error fragment res_structure =
+let generate_fragment_module config name _required_variables has_error fragment res_structure =
   let parse_fn = Output_bucklescript_decoder.generate_decoder config res_structure in
   let variable_names = find_variables config [Graphql_ast.Fragment fragment] |> StringSet.elements in
   let variable_fields = variable_names |> List.map (fun name ->

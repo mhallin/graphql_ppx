@@ -178,10 +178,10 @@ module Context = struct
 end
 
 let rec as_schema_type_ref = function
-  | Tr_named { item } -> Schema.Named item
-  | Tr_list { item } -> Schema.List (as_schema_type_ref item)
-  | Tr_non_null_named { item } -> Schema.NonNull (Schema.Named item)
-  | Tr_non_null_list { item } -> Schema.NonNull (Schema.List (as_schema_type_ref item))
+  | Tr_named { item; _ } -> Schema.Named item
+  | Tr_list { item; _ } -> Schema.List (as_schema_type_ref item)
+  | Tr_non_null_named { item; _ } -> Schema.NonNull (Schema.Named item)
+  | Tr_non_null_list { item; _ } -> Schema.NonNull (Schema.List (as_schema_type_ref item))
 
 module Visitor(V: VisitorSig) = struct
   let enter_input_value self ctx value = match value.item with
@@ -240,7 +240,7 @@ module Visitor(V: VisitorSig) = struct
   let rec visit_inline_fragment self ctx inline_fragment =
     let ctx = match inline_fragment.item.if_type_condition with
       | None -> ctx
-      | Some { item } -> Context.push_type ctx (Some (Schema.NonNull(Schema.Named(item))))
+      | Some { item; _ } -> Context.push_type ctx (Some (Schema.NonNull(Schema.Named(item))))
     in
     let () = V.enter_inline_fragment self ctx inline_fragment in
     let () = visit_directives self ctx inline_fragment.item.if_directives in
@@ -281,7 +281,7 @@ module Visitor(V: VisitorSig) = struct
 
   and visit_arguments self ctx meta_args = function
     | None -> ()
-    | Some { item } -> 
+    | Some { item; _ } -> 
       List.iter (fun (name, value) ->
           let arg_type = meta_args
                          |> Option.flat_map (fun meta_args ->
@@ -305,7 +305,7 @@ module Visitor(V: VisitorSig) = struct
 
   let visit_variable_definitions self ctx = function
     | None -> ()
-    | Some { item } -> List.iter (fun (name, def) -> 
+    | Some { item; _ } -> List.iter (fun (name, def) -> 
         let ctx = Context.push_input_type ctx (Some (as_schema_type_ref def.vd_type.item)) in
         let () = V.enter_variable_definition self ctx (name, def) in
         let () = match def.vd_default_value with
@@ -325,10 +325,10 @@ module Visitor(V: VisitorSig) = struct
 
   let visit_definition self ctx def =
     let def_type = Schema.NonNull(Schema.Named(match def with
-        | Operation { item = { o_type = Query } } -> Schema.query_type ctx.schema |> Schema.type_name
-        | Operation { item = { o_type = Mutation } } -> Schema.mutation_type ctx.schema |> Option.unsafe_unwrap |> Schema.type_name
-        | Operation { item = { o_type = Subscription } } -> Schema.subscription_type ctx.schema |> Option.unsafe_unwrap |> Schema.type_name
-        | Fragment { item = { fg_type_condition = { item } } } -> item))
+        | Operation { item = { o_type = Query; _ }; _ } -> Schema.query_type ctx.schema |> Schema.type_name
+        | Operation { item = { o_type = Mutation; _ }; _ } -> Schema.mutation_type ctx.schema |> Option.unsafe_unwrap |> Schema.type_name
+        | Operation { item = { o_type = Subscription; _ }; _ } -> Schema.subscription_type ctx.schema |> Option.unsafe_unwrap |> Schema.type_name
+        | Fragment { item = { fg_type_condition = { item; _ }; _ }; _ } -> item))
     in
     let ctx = Context.push_type ctx (Some def_type) in
     match def with

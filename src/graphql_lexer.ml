@@ -132,7 +132,7 @@ let scan_name lexer =
   let start_pos = lexer.position in
   match next_char lexer with
   | None -> Error (zero_width lexer.position Unexpected_end_of_file)
-  | Some (start_idx, end_idx) ->
+  | Some (start_idx, _) ->
     let rec scan_loop end_idx =
       match peek_char lexer with
       | Some (idx, ch) when is_name_cont ch ->
@@ -153,7 +153,7 @@ let scan_ellipsis_or_dot lexer =
     if i = 0 then Ok (start_end start_pos lexer.position Ellipsis)
     else match peek_char lexer with
       | Some (_, '.') -> let _ = next_char lexer in scan_loop (i - 1)
-      | Some (_, ch) when i = 2 -> Ok (start_end start_pos lexer.position Dot)
+      | Some (_, _) when i = 2 -> Ok (start_end start_pos lexer.position Dot)
       | Some (_, ch) -> let _ = next_char lexer in Error (single_width lexer.position (Unexpected_character ch))
       | None -> Error (zero_width lexer.position Unexpected_end_of_file)
   in scan_loop 3
@@ -170,7 +170,7 @@ let scan_digits lexer =
     in
     let end_idx = scan_loop start_idx in
     try Ok (int_of_string (String.sub lexer.source start_idx (end_idx - start_idx + 1))) with
-    | Failure "int_of_string" -> Error (start_end start_pos lexer.position Invalid_number)
+    | Failure _ -> Error (start_end start_pos lexer.position Invalid_number)
 
 
 let scan_integer_part lexer =

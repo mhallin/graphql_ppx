@@ -32,11 +32,11 @@ let rec print_input_value iv = match iv with
   | Iv_enum s -> s
   | Iv_variable v -> "$" ^ v
   | Iv_list l -> 
-    "[" ^ (List.map (fun {item} -> print_input_value item) l |> String.concat ", ") ^ "]"
+    "[" ^ (List.map (fun {item; _} -> print_input_value item) l |> String.concat ", ") ^ "]"
   | Iv_object o ->
-    "{" ^ (List.map (fun ({item=key}, {item=value}) -> key ^ ": " ^ print_input_value value) o |> String.concat ", ") ^ "}"
+    "{" ^ (List.map (fun ({item=key; _}, {item=value; _}) -> key ^ ": " ^ print_input_value value) o |> String.concat ", ") ^ "}"
 
-let print_argument ({item=key}, {item=value}) =
+let print_argument ({item=key; _}, {item=value; _}) =
   key ^ ": " ^ print_input_value value
 
 let print_arguments args = match args with
@@ -45,7 +45,7 @@ let print_arguments args = match args with
 
 let print_directive d =
   "@" ^ d.d_name.item ^
-  (match d.d_arguments with | Some {item} -> print_arguments item | None -> "")
+  (match d.d_arguments with | Some {item; _} -> print_arguments item | None -> "")
 
 let is_internal_directive d =
   match d.item.d_name.item with
@@ -82,34 +82,34 @@ let rec print_selection_set schema ty ss = match ss with
     ]
 
 and print_selection schema ty s = match s with 
-  | Field { item } -> print_field schema ty item
-  | FragmentSpread { item } -> print_fragment_spread item
-  | InlineFragment { item } -> print_inline_fragment schema ty item
+  | Field { item; _ } -> print_field schema ty item
+  | FragmentSpread { item; _ } -> print_fragment_spread item
+  | InlineFragment { item; _ } -> print_inline_fragment schema ty item
 
 and print_field schema ty f =
   let ty_fields = Option.unsafe_unwrap @@ match ty with
-    | Interface {im_fields} -> Some im_fields
-    | Object {om_fields} -> Some om_fields
+    | Interface {im_fields; _} -> Some im_fields
+    | Object {om_fields; _} -> Some om_fields
     | _ -> None
   in
   let field_ty = (List.find (fun fm -> fm.fm_name = f.fd_name.item) ty_fields).fm_field_type
                  |> type_ref_name |> lookup_type schema |> Option.unsafe_unwrap in
   Array.append
     [|
-      (match f.fd_alias with | Some {item} -> String (item ^ ": ") | None -> Empty);
+      (match f.fd_alias with | Some {item; _} -> String (item ^ ": ") | None -> Empty);
       String f.fd_name.item;
-      (match f.fd_arguments with | Some {item} -> String (print_arguments item) | None -> Empty);
+      (match f.fd_arguments with | Some {item; _} -> String (print_arguments item) | None -> Empty);
       String (print_directives f.fd_directives);
     |]
-    (match f.fd_selection_set with | Some {item} -> print_selection_set schema field_ty item | None -> [| |])
+    (match f.fd_selection_set with | Some {item; _} -> print_selection_set schema field_ty item | None -> [| |])
 
 
 and print_inline_fragment schema ty f =
-  let inner_ty = match f.if_type_condition with | Some {item} -> lookup_type schema item |> Option.unsafe_unwrap | None -> ty in
+  let inner_ty = match f.if_type_condition with | Some {item; _} -> lookup_type schema item |> Option.unsafe_unwrap | None -> ty in
   Array.append
     [|
       String "...";
-      String (match f.if_type_condition with | Some {item} -> "on " ^ item ^ " " | None -> " ");
+      String (match f.if_type_condition with | Some {item; _} -> "on " ^ item ^ " " | None -> " ");
       String (print_directives f.if_directives);
     |]
     (print_selection_set schema inner_ty f.if_selection_set.item)
@@ -117,7 +117,7 @@ and print_inline_fragment schema ty f =
 let print_variable_definition (name, def) = Printf.sprintf "$%s: %s%s"
     name.item
     (print_type def.vd_type.item)
-    (match def.vd_default_value with | Some { item } -> " = " ^ (print_input_value item) | None -> "")
+    (match def.vd_default_value with | Some { item; _ } -> " = " ^ (print_input_value item) | None -> "")
 
 let print_variable_definitions defs =
   "(" ^ (List.map print_variable_definition defs |> String.concat ", ") ^ ")"
@@ -130,8 +130,8 @@ let print_operation schema op =
   Array.append 
     [|
       String (match op.o_type with | Query -> "query " | Mutation -> "mutation " | Subscription -> "subscription ");
-      (match op.o_name with | Some { item } -> String item | None -> Empty);
-      (match op.o_variable_definitions with | Some { item } -> String (print_variable_definitions item) | None -> Empty);
+      (match op.o_name with | Some { item; _ } -> String item | None -> Empty);
+      (match op.o_variable_definitions with | Some { item; _ } -> String (print_variable_definitions item) | None -> Empty);
       String (print_directives op.o_directives);
     |]
     (print_selection_set schema (lookup_type schema ty_name |> Option.unsafe_unwrap) op.o_selection_set.item)
@@ -145,8 +145,8 @@ let print_fragment schema f =
     (print_selection_set schema (lookup_type schema f.fg_type_condition.item |> Option.unsafe_unwrap) f.fg_selection_set.item)
 
 let print_definition schema def = match def with
-  | Operation { item = operation } -> print_operation schema operation
-  | Fragment { item = fragment } -> print_fragment schema fragment
+  | Operation { item = operation; _ } -> print_operation schema operation
+  | Fragment { item = fragment; _ } -> print_fragment schema fragment
 
 let generate_expr acc = Ast_402.(function
     | Empty -> acc

@@ -1,11 +1,11 @@
 opam-version: "1.2"
-name: "graphql_ppx"
+name: "graphql_ppx_base"
 version: "0.0.4"
 maintainer: "Magnus Hallin <mhallin@fastmail.com>"
 authors: "Magnus Hallin <mhallin@fastmail.com>"
 homepage: "https://github.com/mhallin/graphql_ppx"
 bug-reports: "https://github.com/mhallin/graphql_ppx/issues"
-description: "PPX to decode GraphQL responses."
+description: "Shared internal library for graphql_ppx."
 license: "BSD 3-clause"
 dev-repo: "git@github.com:mhallin/graphql_ppx.git"
 tags: ["bucklescript" "reasonml" "ppx" "graphql"]

@@ -1,6 +1,5 @@
 open Graphql_ast
 open Source_pos
-open Schema
 open Generator_utils
 
 open Ast_402
@@ -12,7 +11,7 @@ open Type_utils
 exception Unimplemented of string
 
 
-let rec make_make_fun config variable_defs =
+let make_make_fun config variable_defs =
   let make_make_triple loc variables =
     Ast_helper.Exp.extension ~loc:loc
       ({txt = "bs.obj"; loc = loc},
@@ -40,7 +39,7 @@ let rec make_make_fun config variable_defs =
       let make_object_function defs body =
         let rec generate_bindings defs = match defs with
           | [] -> body
-          | (name, def) :: tl -> let name_loc = config.map_loc name.span in
+          | (name, _) :: tl -> let name_loc = config.map_loc name.span in
             Ast_helper.Exp.let_ ~loc:name_loc Nonrecursive [
               Ast_helper.(Vb.mk
                             ~loc:name_loc

@@ -25,7 +25,7 @@ let some_or o v = match o with
 
 let add_typename_if_missing fields =
   let open Schema in
-  if List.exists (fun ({ fm_name }) -> fm_name = "__typename") fields
+  if List.exists (fun ({ fm_name; _ }) -> fm_name = "__typename") fields
     then fields
     else typename_field :: fields
 

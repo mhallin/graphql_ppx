@@ -1,11 +1,60 @@
 (executable
  (name graphql_ppx_bucklescript)
  (libraries ocaml-migrate-parsetree
+            graphql_ppx_base)
+ (modules graphql_ppx_bucklescript)
+ (flags (:include ../discover/dune.flags))
+ (preprocess (pps ppx_tools_versioned.metaquot_402)))
+
+(library
+ (name graphql_ppx_native)
+ (public_name graphql_ppx)
+ (modules graphql_ppx_native)
+ (wrapped false)
+ (kind ppx_rewriter)
+ (libraries ocaml-migrate-parsetree
+            graphql_ppx_base)
+ (preprocess (pps ppx_tools_versioned.metaquot_402)))
+
+(library
+ (name graphql_ppx_base)
+ (public_name graphql_ppx_base)
+ (modules ast_serializer_apollo
+          build_config
+          compat
+          dirty_checker
+          generator_utils
+          graphql_ast
+          graphql_lexer
+          graphql_parser_document
+          graphql_parser_value
+          graphql_parser
+          graphql_ppx_base
+          graphql_printer
+          log
+          multi_visitor
+          option
+          output_bucklescript_decoder
+          output_bucklescript_encoder
+          output_bucklescript_module
+          output
+          read_schema
+          result_decoder
+          result_ext
+          result_structure
+          rule_known_argument_names
+          rule_no_unused_variables
+          schema
+          source_pos
+          traversal_utils
+          type_utils
+          unifier
+          validations)
+ (libraries ocaml-migrate-parsetree
             unix
             result
             yojson
             ppx_tools_versioned.metaquot_402)
- (flags (:include ../discover/dune.flags))
  (preprocess (pps ppx_tools_versioned.metaquot_402)))
 
 (rule
@@ -13,5 +62,4 @@
  (deps    (:first-dep build_config.cppo.ml))
   (action
    (chdir ${ROOT}
-    (run %{bin:cppo} -V OCAML:%{ocaml_version} %{first-dep} -o %{targets})))
-   )
+    (run %{bin:cppo} -V OCAML:%{ocaml_version} %{first-dep} -o %{targets}))))

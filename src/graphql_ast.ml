@@ -79,7 +79,7 @@ type definition =
 type document = definition list
 
 let rec innermost_name = function
-  | Tr_named { item }
-  | Tr_non_null_named { item } -> item
-  | Tr_list { item } 
-  | Tr_non_null_list { item } -> innermost_name item
+  | Tr_named { item; _ }
+  | Tr_non_null_named { item; _ } -> item
+  | Tr_list { item; _ }
+  | Tr_non_null_list { item; _ } -> innermost_name item

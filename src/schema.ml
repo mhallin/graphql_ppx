@@ -110,7 +110,7 @@ exception Inconsistent_schema of string
 
 let lookup_implementations schema im =  
   let all_objects_implementing_interface _ value acc = match value with
-    | Object { om_interfaces } as o when List.exists (fun n -> n = im.im_name) om_interfaces -> o :: acc
+    | Object { om_interfaces; _ } as o when List.exists (fun n -> n = im.im_name) om_interfaces -> o :: acc
     | _ -> acc
   in
   Hashtbl.fold all_objects_implementing_interface schema.type_map []
@@ -123,12 +123,12 @@ let lookup_field ty name =
     | _ -> raise @@ Inconsistent_schema ("Multiple fields named " ^ name)
   in
   match ty with
-  | Object { om_fields } -> find_field om_fields
-  | Interface { im_fields } -> find_field im_fields
-  | Scalar { sm_name } -> raise @@ Invalid_type ("Type " ^ sm_name ^ " doesn't have any fields")
-  | Enum { em_name } -> raise @@ Invalid_type ("Type " ^ em_name ^ " doesn't have any fields")
-  | Union { um_name } -> raise @@ Invalid_type ("Type " ^ um_name ^ " doesn't have any fields")
-  | InputObject { iom_name } -> raise @@ Invalid_type ("Type " ^ iom_name ^ " doesn't have any fields")
+  | Object { om_fields; _ } -> find_field om_fields
+  | Interface { im_fields; _ } -> find_field im_fields
+  | Scalar { sm_name; _ } -> raise @@ Invalid_type ("Type " ^ sm_name ^ " doesn't have any fields")
+  | Enum { em_name; _ } -> raise @@ Invalid_type ("Type " ^ em_name ^ " doesn't have any fields")
+  | Union { um_name; _ } -> raise @@ Invalid_type ("Type " ^ um_name ^ " doesn't have any fields")
+  | InputObject { iom_name; _ } -> raise @@ Invalid_type ("Type " ^ iom_name ^ " doesn't have any fields")
 
 let lookup_input_field ty name =
   let find_field fs =
@@ -138,20 +138,20 @@ let lookup_input_field ty name =
     | _ -> raise @@ Inconsistent_schema ("Multiple input fields named " ^ name)
   in
   match ty with
-  | Object { om_name = name }
-  | Interface { im_name = name }
-  | Scalar { sm_name = name }
-  | Enum { em_name = name }
-  | Union { um_name = name } -> raise @@ Invalid_type ("Type " ^ name ^ " doesn't have any input fields")
-  | InputObject { iom_input_fields } -> find_field iom_input_fields
+  | Object { om_name = name; _ }
+  | Interface { im_name = name; _ }
+  | Scalar { sm_name = name; _ }
+  | Enum { em_name = name; _ }
+  | Union { um_name = name; _ } -> raise @@ Invalid_type ("Type " ^ name ^ " doesn't have any input fields")
+  | InputObject { iom_input_fields; _ } -> find_field iom_input_fields
 
 let type_name ty = match ty with
-  | Scalar { sm_name } -> sm_name
-  | Object { om_name } -> om_name
-  | Enum { em_name } -> em_name
-  | Interface { im_name } -> im_name
-  | Union { um_name } -> um_name
-  | InputObject { iom_name } -> iom_name
+  | Scalar { sm_name; _ } -> sm_name
+  | Object { om_name; _ } -> om_name
+  | Enum { em_name; _ } -> em_name
+  | Interface { im_name; _ } -> im_name
+  | Union { um_name; _ } -> um_name
+  | InputObject { iom_name; _ } -> iom_name
 
 let lookup_type schema name =
   match (Hashtbl.find_all schema.type_map name) with
@@ -171,12 +171,12 @@ let all_enums schema = Hashtbl.fold (fun _ v acc ->
     | _ -> acc) schema.type_map []
 
 let extract_name_from_type_meta = function
-  | Scalar { sm_name = x }
-  | Object { om_name = x }
-  | Enum { em_name = x }
-  | Interface { im_name = x }
-  | Union { um_name = x }
-  | InputObject {iom_name = x } -> x
+  | Scalar { sm_name = x; _ }
+  | Object { om_name = x; _ }
+  | Enum { em_name = x; _ }
+  | Interface { im_name = x; _ }
+  | Union { um_name = x; _ }
+  | InputObject {iom_name = x; _ } -> x
 
 let compare_type_meta x y =
   String.compare (extract_name_from_type_meta x) (extract_name_from_type_meta y)

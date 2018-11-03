@@ -1,6 +1,4 @@
 open Ast_402
-open Parsetree
-open Asttypes
 
 type error_marker = {
   mutable has_error: bool

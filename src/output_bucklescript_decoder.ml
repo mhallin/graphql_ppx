@@ -37,10 +37,10 @@ let boolean_decoder config loc =
     | None -> [%e make_error_raiser config [%expr "Expected boolean, got " ^ (Js.Json.stringify value)]]
     | Some value -> value] [@metaloc loc]
 
-let generate_poly_enum_decoder config loc enum_meta =
+let generate_poly_enum_decoder config _loc enum_meta =
   let enum_match_arms = Ast_helper.(
       List.map
-        (fun {evm_name} -> Exp.case 
+        (fun {evm_name; _} -> Exp.case 
             (Pat.constant (Const_string (evm_name, None)))
             (Exp.variant evm_name None))
         enum_meta.em_values) in
@@ -53,7 +53,7 @@ let generate_poly_enum_decoder config loc enum_meta =
                                  (List.concat [enum_match_arms; [fallback_arm]])) in
   let enum_ty = Ast_helper.(
       Typ.variant
-        (List.map (fun { evm_name } -> Rtag (evm_name, [], true, [])) enum_meta.em_values)
+        (List.map (fun { evm_name; _ } -> Rtag (evm_name, [], true, [])) enum_meta.em_values)
         Closed None) [@metaloc loc]
   in
   [%expr match Js.Json.decodeString value with 
@@ -79,7 +79,7 @@ let rec generate_decoder config = function
   | Res_int loc -> int_decoder config loc
   | Res_float loc -> float_decoder config loc
   | Res_boolean loc -> boolean_decoder config loc
-  | Res_raw_scalar loc -> [%expr value]
+  | Res_raw_scalar _ -> [%expr value]
   | Res_poly_enum (loc, enum_meta) -> generate_poly_enum_decoder config loc enum_meta
   | Res_custom_decoder (loc, ident, inner) -> generate_custom_decoder config loc ident inner
   | Res_record (loc, name, fields) -> generate_record_decoder config loc name fields

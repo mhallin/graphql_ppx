@@ -2,6 +2,8 @@ module To_current = Migrate_parsetree.Convert(Migrate_parsetree.OCaml_402)(Migra
 
 open Source_pos
 
+module Output_bucklescript_module = Output_bucklescript_module
+
 let add_pos delimLength base pos =
   let open Lexing in
   let (_, _, col) = Location.get_pos_info base in
@@ -61,12 +63,9 @@ let drop_prefix prefix str =
 module Mapper(MG: Output.Module_generator) = struct
   let mapper argv =
     let open Ast_402 in
-    let open Asttypes in
-    let open Parsetree in
     let open Ast_mapper in
     let open Ast_helper in
     let open Parsetree in
-    let open Location in
     let open Asttypes in
 
     let () = 
@@ -98,11 +97,11 @@ module Mapper(MG: Output.Module_generator) = struct
 
     let module_expr mapper mexpr = begin
       match mexpr with
-      | {pmod_desc = Pmod_extension ({txt = "graphql"; loc}, pstr)} -> begin
+      | {pmod_desc = Pmod_extension ({txt = "graphql"; loc}, pstr); _} -> begin
           match pstr with
           | PStr [{ pstr_desc = Pstr_eval ({
               pexp_loc = loc; 
-              pexp_desc = Pexp_constant (Const_string (query, delim))}, _)}] -> begin
+              pexp_desc = Pexp_constant (Const_string (query, delim)); _}, _); _}] -> begin
               let lexer = Graphql_lexer.make query in
               let delimLength = match delim with | Some s -> 2 + String.length s | None -> 1 in
               match Graphql_lexer.consume lexer with
@@ -132,7 +131,7 @@ module Mapper(MG: Output.Module_generator) = struct
                           [%stri let _ = [%e make_error_expr loc msg]]) errs))
                   | None ->
                     let parts = Result_decoder.unify_document_schema config document in
-                    Output_bucklescript_module.generate_modules config parts
+                    MG.generate_modules config parts
             end
           | _ -> raise (Location.Error (
               Location.error ~loc "[%graphql] accepts a string, e.g. [%graphql {| { query |}]"

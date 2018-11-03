@@ -29,24 +29,24 @@ let expect parser token =
 
 let expect_name parser =
   match next parser with
-  | Ok ({ item = Graphql_lexer.Name name } as span) -> Ok (replace span name)
-  | Ok ({ item = Graphql_lexer.End_of_file } as span) -> Error (replace span Unexpected_end_of_file)
+  | Ok ({ item = Graphql_lexer.Name name; _ } as span) -> Ok (replace span name)
+  | Ok ({ item = Graphql_lexer.End_of_file; _ } as span) -> Error (replace span Unexpected_end_of_file)
   | Ok span -> Error (map (fun t -> Unexpected_token t) span)
   | Error e -> Error e
 
 let expect_dotted_name parser =
-  let rec loop start_pos end_pos acc = match next parser with
+  let rec loop start_pos _ acc = match next parser with
     | Ok { item = Graphql_lexer.Name name; span = _, end_pos } ->
       let acc = acc ^ name in
       begin match peek parser with
         | { item = Graphql_lexer.Dot; span = _, end_pos } -> let _ = next parser in loop start_pos end_pos (acc ^ ".")
         | _ -> Ok (start_end start_pos end_pos acc)
       end 
-    | Ok ({ item = Graphql_lexer.End_of_file } as span) -> Error (replace span Unexpected_end_of_file)
+    | Ok ({ item = Graphql_lexer.End_of_file; _ } as span) -> Error (replace span Unexpected_end_of_file)
     | Ok span -> Error (map (fun t -> Unexpected_token t) span)
     | Error e -> Error e
   in
-  let { span = start_pos, end_pos } = peek parser in
+  let { span = start_pos, end_pos; _ } = peek parser in
   loop start_pos end_pos ""
 
 let skip parser token =
@@ -58,10 +58,10 @@ let skip parser token =
 let delimited_list parser opening sub_parser closing =
   match expect parser opening with
   | Error e -> Error e
-  | Ok { span = (start_pos, _) } ->
+  | Ok { span = (start_pos, _); _ } ->
     let rec scanner acc =
       match skip parser closing with
-      | Ok (Some { span = (_, end_pos) }) -> Ok (start_end start_pos end_pos (List.rev acc))
+      | Ok (Some { span = (_, end_pos); _ }) -> Ok (start_end start_pos end_pos (List.rev acc))
       | _ ->
         match sub_parser parser with
         | Ok span -> scanner (span :: acc)
@@ -72,13 +72,13 @@ let delimited_list parser opening sub_parser closing =
 let delimited_nonempty_list parser opening sub_parser closing =
   match expect parser opening with
   | Error e -> Error e
-  | Ok { span = (start_pos, _) } ->
+  | Ok { span = (start_pos, _); _ } ->
     let rec scanner acc =
       match sub_parser parser with
       | Error e -> Error e
       | Ok span -> match skip parser closing with
         | Error e -> Error e
-        | Ok Some { span = (_, end_pos) } -> Ok (start_end start_pos end_pos (List.rev (span :: acc)))
+        | Ok Some { span = (_, end_pos); _ } -> Ok (start_end start_pos end_pos (List.rev (span :: acc)))
         | Ok None -> scanner (span :: acc)
     in
     scanner []

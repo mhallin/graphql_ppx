@@ -1,10 +1,8 @@
 open Graphql_ast
 open Source_pos
 open Schema
-open Generator_utils
 
 open Ast_402
-open Parsetree
 open Asttypes
 
 open Type_utils
@@ -33,7 +31,7 @@ let sort_variable_types schema variables =
         | Some (InputObject io) ->
           let () = loop
               (StringSet.add type_name visit_stack)
-              (List.map (fun { am_arg_type } -> (span, am_arg_type)) io.iom_input_fields) in
+              (List.map (fun { am_arg_type; _ } -> (span, am_arg_type)) io.iom_input_fields) in
           Queue.push (span, type_name) ordered_nodes
         | Some _ -> ()
       in loop visit_stack tail
@@ -60,18 +58,18 @@ let rec parser_for_type schema loc type_ref =
   | Ntr_named type_name ->
     match lookup_type schema type_name  with
     | None -> raise_inconsistent_schema type_name 
-    | Some (Scalar { sm_name = "String" })
-    | Some (Scalar { sm_name = "ID" }) -> [%expr Js.Json.string]
-    | Some (Scalar { sm_name = "Int" }) -> [%expr fun v -> Js.Json.number (float_of_int v)]
-    | Some (Scalar { sm_name = "Float" }) -> [%expr Js.Json.number]
-    | Some (Scalar { sm_name = "Boolean" }) -> [%expr Js.Json.boolean]
+    | Some (Scalar { sm_name = "String"; _ })
+    | Some (Scalar { sm_name = "ID"; _ }) -> [%expr Js.Json.string]
+    | Some (Scalar { sm_name = "Int"; _ }) -> [%expr fun v -> Js.Json.number (float_of_int v)]
+    | Some (Scalar { sm_name = "Float"; _ }) -> [%expr Js.Json.number]
+    | Some (Scalar { sm_name = "Boolean"; _ }) -> [%expr Js.Json.boolean]
     | Some (Scalar _) -> [%expr fun v -> v]
     | Some ty ->
       function_name_string ty |> ident_from_string loc
 
 let json_of_fields schema loc expr fields =
   let field_array_exprs = fields |> List.map
-                            (fun {am_name; am_arg_type} ->
+                            (fun {am_name; am_arg_type; _} ->
                                let type_ref = to_native_type_ref am_arg_type in
                                let parser = parser_for_type schema loc type_ref in
                                [%expr (
@@ -88,22 +86,22 @@ let generate_encoder config (spanning, x) =
     | Object _ -> raise @@ Invalid_argument "Unsupported variable type: Object"
     | Interface _ -> raise @@ Invalid_argument "Unsupported variable type: Interface"
     | Union _ -> raise @@ Invalid_argument "Unsupported variable type: Union"
-    | Enum { em_values } ->
+    | Enum { em_values; _ } ->
       let match_arms = em_values |> List.map
-                         (fun { evm_name } ->
+                         (fun { evm_name; _ } ->
                             let pattern = Ast_helper.Pat.variant evm_name None in
                             let expr = Ast_helper.Exp.constant (Const_string (evm_name, None)) in
                             Ast_helper.Exp.case pattern [%expr Js.Json.string [%e expr]]) in
       Ast_helper.Exp.match_ [%expr value] match_arms
-    | InputObject { iom_input_fields } -> 
+    | InputObject { iom_input_fields; _ } -> 
       json_of_fields config.schema loc [%expr value] iom_input_fields
   in
   Ast_helper.Vb.mk ~loc (Ast_helper.Pat.var { txt = function_name_string x; loc }) [%expr fun value -> [%e body]]
 
-let generate_encoders config loc = function
-  | Some { item } ->
+let generate_encoders config _loc = function
+  | Some { item; _ } ->
     item
-    |> List.map (fun (span, {vd_type = variable_type}) -> span, to_schema_type_ref variable_type.item)
+    |> List.map (fun (span, {vd_type = variable_type; _}) -> span, to_schema_type_ref variable_type.item)
     |> sort_variable_types config.schema
     |> (fun (is_recursive, types) -> (if is_recursive then Recursive else Nonrecursive), Array.map (generate_encoder config) types)
   | None -> (Nonrecursive, [||])

@@ -2,7 +2,6 @@ module Visitor: Traversal_utils.VisitorSig = struct
   open Traversal_utils
   open Source_pos
   open Graphql_ast
-  open Schema
 
   include AbstractVisitor
 
@@ -14,7 +13,7 @@ module Visitor: Traversal_utils.VisitorSig = struct
     let () = Hashtbl.clear self in
     match def.item.o_variable_definitions with
     | None -> ()
-    | Some { item } ->
+    | Some { item; _ } ->
       List.iter (fun (name, _) -> Hashtbl.add self name.item name) item
 
   let enter_variable_value self _ name =
