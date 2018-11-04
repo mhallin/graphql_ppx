@@ -1,0 +1,8 @@
+(library
+ (name graphql_ppx)
+ (public_name graphql_ppx)
+ (wrapped false)
+ (kind ppx_rewriter)
+ (libraries graphql_ppx_base
+            ppxlib)
+ (preprocess (pps ppxlib.metaquot)))

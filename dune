@@ -1,4 +1,4 @@
 (alias
  (name graphql_ppx)
- (deps src/graphql_ppx_bucklescript.exe
-       src/graphql_ppx_native.a))
+ (deps src/bucklescript/graphql_ppx.exe
+       src/native/graphql_ppx.a))

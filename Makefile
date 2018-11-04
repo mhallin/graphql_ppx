@@ -4,15 +4,15 @@ OS:=$(shell uname -s)
 TARGET_BUCKLESCRIPT:=$(findstring $(shell opam switch show),4.02.3)
 
 build:
-	$(DUNE) build src/graphql_ppx_bucklescript.exe
-	# if [ "$(TARGET_BUCKLESCRIPT)" = "" ]; then  $(DUNE) build src/graphql_ppx_native.a; fi  ## FIXME: Native library does not build
-	cp _build/default/src/graphql_ppx_bucklescript.exe graphql_ppx.exe
+	$(DUNE) build src/bucklescript/graphql_ppx.exe
+	if [ "$(TARGET_BUCKLESCRIPT)" = "" ]; then  $(DUNE) build src/native/graphql_ppx.a; fi
+	cp _build/default/src/bucklescript/graphql_ppx.exe .
 
 buildall:
-	# $(DUNE) build --workspace=dune-workspace.dev-native src/graphql_ppx_native.a ## FIXME: Native library does not build
-	$(DUNE) build --workspace=dune-workspace.dev-bs src/graphql_ppx_bucklescript.exe
-	([ -x _build/4.02.3/src/graphql_ppx_bucklescript.exe ] \
-		&& cp _build/4.02.3/src/graphql_ppx_bucklescript.exe graphql_ppx.exe)
+	$(DUNE) build --workspace=dune-workspace.dev-native src/native/graphql_ppx.a
+	$(DUNE) build --workspace=dune-workspace.dev-bs src/bucklescript/graphql_ppx.exe
+	([ -x _build/4.02.3/src/bucklescript/graphql_ppx.exe ] \
+		&& cp _build/4.02.3/src/bucklescript/graphql_ppx.exe .)
 
 test: build only-test
 
