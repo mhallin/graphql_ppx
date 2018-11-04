@@ -1,13 +1,8 @@
-open Ast_402
-
 type error_marker = {
   mutable has_error: bool
 }
 
-let raise_error_with_loc loc message =
-  raise (Location.Error (
-      Location.error ~loc message
-    ))
+let raise_error_with_loc = Ppx_config.raise_error_with_loc
 
 let raise_error map_loc span message =
   raise_error_with_loc (map_loc span) message
@@ -19,15 +14,9 @@ let some_or o d = match o with
 let capitalize_ascii = Compat.capitalize_ascii
 let uncapitalize_ascii = Compat.uncapitalize_ascii
 
-type output_mode =
-  | String
-  | Apollo_AST
-
 type output_config = {
-  map_loc: Source_pos.source_position * Source_pos.source_position -> Result_structure.loc;
+  map_loc: Source_pos.source_position * Source_pos.source_position -> Source_pos.ast_location;
   delimiter: string option;
-  output_mode: output_mode;
-  verbose_error_handling: bool;
   schema: Schema.schema;
   full_document: Graphql_ast.document;
 }

@@ -11,7 +11,7 @@
 /tests_apollo/node_modules
 /lib
 /ppx
-/graphql_ppx.*
+/graphql_ppx.exe
 dune.flags
 jbuild.flags
 .merlin

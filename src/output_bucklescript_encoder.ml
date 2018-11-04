@@ -1,3 +1,4 @@
+open Graphql_ppx_base
 open Graphql_ast
 open Source_pos
 open Schema
@@ -7,6 +8,7 @@ open Asttypes
 
 open Type_utils
 open Generator_utils
+open Output_bucklescript_utils
 
 let mangle_enum_name = Generator_utils.uncapitalize_ascii
 
@@ -51,10 +53,10 @@ let rec parser_for_type schema loc type_ref =
   match type_ref with
   | Ntr_list x ->
     let child_parser = parser_for_type schema loc x in
-    [%expr fun v -> Js.Json.array (Js.Array.map [%e child_parser] v)] [@metaloc loc]
+    [%expr fun v -> Js.Json.array (Js.Array.map [%e child_parser] v)] [@metaloc conv_loc loc]
   | Ntr_nullable x ->
     let child_parser = parser_for_type schema loc x in
-    [%expr fun v -> match v with None -> Js.Json.null | Some v -> [%e child_parser] v] [@metaloc loc]
+    [%expr fun v -> match v with None -> Js.Json.null | Some v -> [%e child_parser] v] [@metaloc conv_loc loc]
   | Ntr_named type_name ->
     match lookup_type schema type_name  with
     | None -> raise_inconsistent_schema type_name 
@@ -65,7 +67,7 @@ let rec parser_for_type schema loc type_ref =
     | Some (Scalar { sm_name = "Boolean"; _ }) -> [%expr Js.Json.boolean]
     | Some (Scalar _) -> [%expr fun v -> v]
     | Some ty ->
-      function_name_string ty |> ident_from_string loc
+      function_name_string ty |> ident_from_string (conv_loc loc)
 
 let json_of_fields schema loc expr fields =
   let field_array_exprs = fields |> List.map
@@ -74,10 +76,10 @@ let json_of_fields schema loc expr fields =
                                let parser = parser_for_type schema loc type_ref in
                                [%expr (
                                  [%e Ast_helper.Exp.constant (Const_string (am_name, None)) ],
-                                 [%e parser] ([%e expr] ## [%e ident_from_string loc am_name])
-                               )] [@metaloc loc]) in
+                                 [%e parser] ([%e expr] ## [%e ident_from_string (conv_loc loc) am_name])
+                               )] [@metaloc conv_loc loc]) in
   let field_array = Ast_helper.Exp.array field_array_exprs in
-  [%expr Js.Json.object_ (Js.Dict.fromArray [%e field_array])] [@metaloc loc]
+  [%expr Js.Json.object_ (Js.Dict.fromArray [%e field_array])] [@metaloc conv_loc loc]
 
 let generate_encoder config (spanning, x) =
   let loc = config.map_loc spanning.span in
@@ -96,6 +98,7 @@ let generate_encoder config (spanning, x) =
     | InputObject { iom_input_fields; _ } -> 
       json_of_fields config.schema loc [%expr value] iom_input_fields
   in
+  let loc = conv_loc loc in
   Ast_helper.Vb.mk ~loc (Ast_helper.Pat.var { txt = function_name_string x; loc }) [%expr fun value -> [%e body]]
 
 let generate_encoders config _loc = function

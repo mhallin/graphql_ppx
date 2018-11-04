@@ -283,12 +283,12 @@ let build_schema json_schema =
 
 let build_schema_if_dirty json_schema = 
   Dirty_checker.(
-    make(json_schema)
-    |> verbose(!Log.is_verbose)
-    |> set_hash_path (get_hash_path json_schema)
-    |> on_dirty (build_schema)
-    |> check
-  )
+    {
+      src = json_schema;
+      hash_path = get_hash_path json_schema;
+      dirty_callback = build_schema;
+    }
+    |> check)
 
 let rec read_marshaled_schema json_schema =
   let marshaled_schema = (get_marshaled_path json_schema) in
@@ -312,8 +312,8 @@ and recovery_build json_schema =
   read_marshaled_schema (json_schema) 
 
 (* lazily read schema and check if schema file existed *)
-let get_schema dir json_schema_rel = lazy (
-  match find_file_towards_root dir json_schema_rel with 
+let get_schema () = lazy (
+  match find_file_towards_root (Ppx_config.root_directory ()) (Ppx_config.schema_file ()) with 
     | None -> raise Schema_file_not_found
     | Some json_schema -> 
       build_schema_if_dirty json_schema;

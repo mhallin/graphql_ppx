@@ -1,7 +1,4 @@
-let is_verbose = ref false
+let log msg =
+  if Ppx_config.verbose_logging () then print_endline msg
 
-let log msg = if !is_verbose then print_endline msg
-
-let must_log msg = print_endline msg
-
-
+let must_log = print_endline

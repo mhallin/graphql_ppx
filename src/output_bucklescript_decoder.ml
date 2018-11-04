@@ -1,3 +1,4 @@
+open Graphql_ppx_base
 open Result_structure
 open Schema
 
@@ -6,38 +7,39 @@ open Asttypes
 open Parsetree
 
 open Generator_utils
+open Output_bucklescript_utils
 
 let const_str_expr s = Ast_helper.(Exp.constant (Const_string (s, None)))
 
-let make_error_raiser config message =
-  if config.verbose_error_handling then
+let make_error_raiser message =
+  if Ppx_config.verbose_error_handling () then
     [%expr Js.Exn.raiseError ("graphql_ppx: " ^ [%e message])]
   else
     [%expr Js.Exn.raiseError ("Unexpected GraphQL query response")]
 
-let string_decoder config loc =
+let string_decoder loc =
   [%expr match Js.Json.decodeString value with
-    | None -> [%e make_error_raiser config [%expr "Expected string, got " ^ (Js.Json.stringify value)]]
+    | None -> [%e make_error_raiser [%expr "Expected string, got " ^ (Js.Json.stringify value)]]
     | Some value -> (value : string)] [@metaloc loc]
 
 let id_decoder = string_decoder
 
-let float_decoder config loc =
+let float_decoder loc =
   [%expr match Js.Json.decodeNumber value with
-    | None -> [%e make_error_raiser config [%expr "Expected float, got " ^ (Js.Json.stringify value)]]
+    | None -> [%e make_error_raiser [%expr "Expected float, got " ^ (Js.Json.stringify value)]]
     | Some value -> value] [@metaloc loc]
 
-let int_decoder config loc =
+let int_decoder loc =
   [%expr match Js.Json.decodeNumber value with
-    | None -> [%e make_error_raiser config [%expr "Expected int, got " ^ (Js.Json.stringify value)]]
+    | None -> [%e make_error_raiser [%expr "Expected int, got " ^ (Js.Json.stringify value)]]
     | Some value -> int_of_float value] [@metaloc loc]
 
-let boolean_decoder config loc =
+let boolean_decoder loc =
   [%expr match Js.Json.decodeBoolean value with
-    | None -> [%e make_error_raiser config [%expr "Expected boolean, got " ^ (Js.Json.stringify value)]]
+    | None -> [%e make_error_raiser [%expr "Expected boolean, got " ^ (Js.Json.stringify value)]]
     | Some value -> value] [@metaloc loc]
 
-let generate_poly_enum_decoder config _loc enum_meta =
+let generate_poly_enum_decoder _loc enum_meta =
   let enum_match_arms = Ast_helper.(
       List.map
         (fun {evm_name; _} -> Exp.case 
@@ -47,7 +49,7 @@ let generate_poly_enum_decoder config _loc enum_meta =
   let fallback_arm = Ast_helper.(
       Exp.case
         (Pat.any ())
-        (make_error_raiser config [%expr "Unknown enum variant for " ^ [%e const_str_expr enum_meta.em_name] ^ ": " ^ value])) in
+        (make_error_raiser [%expr "Unknown enum variant for " ^ [%e const_str_expr enum_meta.em_name] ^ ": " ^ value])) in
   let match_expr = Ast_helper.(Exp.match_
                                  [%expr value]
                                  (List.concat [enum_match_arms; [fallback_arm]])) in
@@ -57,14 +59,14 @@ let generate_poly_enum_decoder config _loc enum_meta =
         Closed None) [@metaloc loc]
   in
   [%expr match Js.Json.decodeString value with 
-    | None -> [%e make_error_raiser config [%expr
+    | None -> [%e make_error_raiser [%expr
         "Expected enum value for " ^
         [%e const_str_expr enum_meta.em_name] ^
         ", got " ^ (Js.Json.stringify value)]]
     | Some value -> ([%e match_expr]: [%t enum_ty])]
 
 let generate_solo_fragment_spread loc name =
-  let ident = Ast_helper.Exp.ident { loc = loc; txt = Longident.parse (name ^ ".parse") } in
+  let ident = Ast_helper.Exp.ident { loc; txt = Longident.parse (name ^ ".parse") } in
   [%expr [%e ident] value]
 
 let generate_error loc message =
@@ -72,23 +74,23 @@ let generate_error loc message =
   [%expr let _value = value in [%e Ast_helper.Exp.extension ~loc ext]]
 
 let rec generate_decoder config = function
-  | Res_nullable (loc, inner) -> generate_nullable_decoder config loc inner
-  | Res_array (loc, inner) -> generate_array_decoder config loc inner
-  | Res_id loc -> id_decoder config loc
-  | Res_string loc -> string_decoder config loc
-  | Res_int loc -> int_decoder config loc
-  | Res_float loc -> float_decoder config loc
-  | Res_boolean loc -> boolean_decoder config loc
+  | Res_nullable (loc, inner) -> generate_nullable_decoder config (conv_loc loc) inner
+  | Res_array (loc, inner) -> generate_array_decoder config (conv_loc loc) inner
+  | Res_id loc -> id_decoder (conv_loc loc)
+  | Res_string loc -> string_decoder (conv_loc loc)
+  | Res_int loc -> int_decoder (conv_loc loc)
+  | Res_float loc -> float_decoder (conv_loc loc)
+  | Res_boolean loc -> boolean_decoder (conv_loc loc)
   | Res_raw_scalar _ -> [%expr value]
-  | Res_poly_enum (loc, enum_meta) -> generate_poly_enum_decoder config loc enum_meta
-  | Res_custom_decoder (loc, ident, inner) -> generate_custom_decoder config loc ident inner
-  | Res_record (loc, name, fields) -> generate_record_decoder config loc name fields
-  | Res_object (loc, name, fields) -> generate_object_decoder config loc name fields
-  | Res_poly_variant_selection_set (loc, name, fields) -> generate_poly_variant_selection_set config loc name fields
-  | Res_poly_variant_union (loc, name, fragments, exhaustive) -> generate_poly_variant_union config loc name fragments exhaustive
-  | Res_poly_variant_interface (loc, name, base, fragments) -> generate_poly_variant_interface config loc name base fragments
-  | Res_solo_fragment_spread (loc, name) -> generate_solo_fragment_spread loc name
-  | Res_error (loc, message) -> generate_error loc message
+  | Res_poly_enum (loc, enum_meta) -> generate_poly_enum_decoder (conv_loc loc) enum_meta
+  | Res_custom_decoder (loc, ident, inner) -> generate_custom_decoder config (conv_loc loc) ident inner
+  | Res_record (loc, name, fields) -> generate_record_decoder config (conv_loc loc) name fields
+  | Res_object (loc, name, fields) -> generate_object_decoder config (conv_loc loc) name fields
+  | Res_poly_variant_selection_set (loc, name, fields) -> generate_poly_variant_selection_set config (conv_loc loc) name fields
+  | Res_poly_variant_union (loc, name, fragments, exhaustive) -> generate_poly_variant_union config (conv_loc loc) name fragments exhaustive
+  | Res_poly_variant_interface (loc, name, base, fragments) -> generate_poly_variant_interface config (conv_loc loc) name base fragments
+  | Res_solo_fragment_spread (loc, name) -> generate_solo_fragment_spread (conv_loc loc) name
+  | Res_error (loc, message) -> generate_error (conv_loc loc) message
 
 and generate_nullable_decoder config loc inner =
   [%expr match Js.Json.decodeNull value with
@@ -97,7 +99,7 @@ and generate_nullable_decoder config loc inner =
 
 and generate_array_decoder config loc inner =
   [%expr match Js.Json.decodeArray value with
-    | None -> [%e make_error_raiser config [%expr ("Expected array, got " ^ (Js.Json.stringify value))]]
+    | None -> [%e make_error_raiser [%expr ("Expected array, got " ^ (Js.Json.stringify value))]]
     | Some value -> Js.Array.map (fun value -> [%e generate_decoder config inner]) value] [@metaloc loc]
 
 and generate_custom_decoder config loc ident inner =
@@ -135,13 +137,14 @@ and generate_record_decoder config loc name fields =
       fields
       |> filter_map (function
           | Fr_named_field (field, loc, inner) -> 
+            let loc = conv_loc loc in
             Some [%expr match Js.Dict.get value [%e const_str_expr field] with
               | Some value -> [%e generate_decoder config inner]
               | None -> [%e
                 if can_be_absent_as_field inner then
                   [%expr None ]
                 else 
-                  make_error_raiser config [%expr
+                  make_error_raiser [%expr
                     "Field " ^ [%e const_str_expr field] ^
                     " on type " ^ [%e const_str_expr name] ^ " is missing"]]] [@metaloc loc]
           | Fr_fragment_spread _ -> None)
@@ -151,15 +154,17 @@ and generate_record_decoder config loc name fields =
       fields
       |> List.map (function
           | Fr_named_field (field, loc, _) ->
+            let loc = conv_loc loc in
             ({ Location.loc = loc; txt = Longident.Lident field}, 
              Exp.ident ~loc { loc; txt = Longident.Lident ("field_" ^ field) })
           | Fr_fragment_spread (field, loc, name) ->
+            let loc = conv_loc loc in
             ({ Location.loc = loc; txt = Longident.Lident field},
              [%expr let value = Js.Json.object_ value in [%e generate_solo_fragment_spread loc name]] [@metaloc loc]))) in
   let record = Ast_helper.Exp.record ~loc record_fields None in
 
   [%expr match Js.Json.decodeObject value with
-    | None -> [%e make_error_raiser config [%expr
+    | None -> [%e make_error_raiser [%expr
         "Expected object of type " ^
         [%e const_str_expr name] ^
         ", got " ^ (Js.Json.stringify value)]]
@@ -183,7 +188,7 @@ and generate_object_decoder config loc name fields =
     | Fr_named_field (key, _, _) :: next -> Ast_helper.Typ.arrow key (Ast_helper.Typ.var ("a" ^ (string_of_int i)))
                                            (make_obj_constructor_fn (i+1) next) in
   [%expr match Js.Json.decodeObject value with
-    | None -> [%e make_error_raiser config [%expr "Object is not a value"]]
+    | None -> [%e make_error_raiser [%expr "Object is not a value"]]
     | Some value ->
       [%e
         Ast_helper.Exp.letmodule {txt = "GQL"; loc = Location.none} (Ast_helper.Mod.structure [
@@ -206,9 +211,10 @@ and generate_object_decoder config loc name fields =
                             if can_be_absent_as_field inner then
                               [%expr None]
                             else 
-                              make_error_raiser config [%expr "Field " ^ [%e const_str_expr key] ^ " on type " ^ [%e const_str_expr name] ^ " is missing"]
+                              make_error_raiser [%expr "Field " ^ [%e const_str_expr key] ^ " on type " ^ [%e const_str_expr name] ^ " is missing"]
                           ]])
                      | Fr_fragment_spread (key, loc, name) ->
+                      let loc = conv_loc loc in
                        (key, [%expr let value = Js.Json.object_ value in [%e generate_solo_fragment_spread loc name]])
                    ) fields)
                 [("", Ast_helper.Exp.construct { txt = Longident.Lident "()"; loc = Location.none} None)]
@@ -223,13 +229,13 @@ and generate_poly_variant_selection_set config loc name fields =
                                           (Compat.capitalize_ascii field)
                                           (Some (generate_decoder config inner))) in
       [%expr match Js.Dict.get value [%e const_str_expr field] with
-        | None -> [%e make_error_raiser config [%expr
+        | None -> [%e make_error_raiser [%expr
             "Field " ^ [%e const_str_expr field] ^
             " on type " ^ [%e const_str_expr name] ^ " is missing"]]
         | Some temp -> match Js.Json.decodeNull temp with
           | None -> let value = temp in [%e variant_decoder]
           | Some _ -> [%e generator_loop next]]
-    | [] -> make_error_raiser config [%expr
+    | [] -> make_error_raiser [%expr
               "All fields on variant selection set on type " ^ 
               [%e const_str_expr name] ^
               " were null"] in
@@ -238,7 +244,7 @@ and generate_poly_variant_selection_set config loc name fields =
         (List.map (fun (name, _) -> Rtag (Compat.capitalize_ascii name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }])) fields)
         Closed None) in
   [%expr match Js.Json.decodeObject value with
-    | None -> [%e make_error_raiser config [%expr "Expected type " ^ [%e const_str_expr name] ^ " to be an object"]]
+    | None -> [%e make_error_raiser [%expr "Expected type " ^ [%e const_str_expr name] ^ " to be an object"]]
     | Some value -> ([%e generator_loop fields]: [%t variant_type])] [@metaloc loc]
 
 and generate_poly_variant_interface config loc name base fragments =
@@ -268,14 +274,14 @@ and generate_poly_variant_interface config loc name base fragments =
                                         (List.concat [ fragment_cases; [ fallback_case ]])) in
   [%expr
     match Js.Json.decodeObject value with
-    | None -> [%e make_error_raiser config
+    | None -> [%e make_error_raiser
        [%expr "Expected Interface implementation " ^ [%e const_str_expr name] ^ " to be an object, got " ^ (Js.Json.stringify value)]]
     | Some typename_obj -> match Js.Dict.get typename_obj "__typename" with
-      | None -> [%e make_error_raiser config [%expr
+      | None -> [%e make_error_raiser [%expr
           "Interface implementation" ^ [%e const_str_expr name] ^
           " is missing the __typename field"]]
       | Some typename -> match Js.Json.decodeString typename with
-        | None -> [%e make_error_raiser config [%expr
+        | None -> [%e make_error_raiser [%expr
             "Interface implementation " ^ [%e const_str_expr name] ^
             " has a __typename field that is not a string"]]
         | Some typename -> ([%e typename_matcher]: [%t interface_ty])] [@metaloc loc]
@@ -291,7 +297,7 @@ and generate_poly_variant_union config loc name fragments exhaustive_flag =
       | Result_structure.Exhaustive ->
         (Exp.case
            (Pat.var { loc = Location.none; txt = "typename" })
-           (make_error_raiser config [%expr
+           (make_error_raiser [%expr
               "Union " ^ [%e const_str_expr name] ^
               " returned unknown type " ^ typename]),
          [ ])
@@ -306,13 +312,13 @@ and generate_poly_variant_union config loc name fragments exhaustive_flag =
                                        (List.concat [ fragment_cases; [ fallback_case ]])) in
   [%expr
     match Js.Json.decodeObject value with
-    | None -> [%e make_error_raiser config [%expr "Expected union " ^ [%e const_str_expr name] ^ " to be an object, got " ^ (Js.Json.stringify value)]]
+    | None -> [%e make_error_raiser [%expr "Expected union " ^ [%e const_str_expr name] ^ " to be an object, got " ^ (Js.Json.stringify value)]]
     | Some typename_obj -> match Js.Dict.get typename_obj "__typename" with
-      | None -> [%e make_error_raiser config [%expr
+      | None -> [%e make_error_raiser [%expr
           "Union " ^ [%e const_str_expr name] ^
           " is missing the __typename field"]]
       | Some typename -> match Js.Json.decodeString typename with
-        | None -> [%e make_error_raiser config [%expr
+        | None -> [%e make_error_raiser [%expr
             "Union " ^ [%e const_str_expr name] ^
             " has a __typename field that is not a string"]]
         | Some typename -> ([%e typename_matcher]: [%t union_ty])] [@metaloc loc]

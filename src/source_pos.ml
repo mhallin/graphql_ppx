@@ -34,3 +34,16 @@ let map f span =
 
 let start_pos span = fst span.span
 let end_pos span = snd span.span
+
+type ast_position = {
+  pos_fname : string;
+  pos_lnum : int;
+  pos_bol : int;
+  pos_cnum : int;
+}
+
+type ast_location = {
+  loc_start: ast_position;
+  loc_end: ast_position;
+  loc_ghost: bool;
+}

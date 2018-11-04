@@ -1,3 +1,4 @@
+open Graphql_ppx_base
 open Graphql_ast
 open Source_pos
 open Generator_utils
@@ -7,6 +8,7 @@ open Parsetree
 open Asttypes
 
 open Type_utils
+open Output_bucklescript_utils
 
 exception Unimplemented of string
 
@@ -24,8 +26,8 @@ let make_make_fun config variable_defs =
   match variable_defs with
   | Some { item; span } -> begin
       let rec make_labelled_function defs body = match defs with
-        | [] -> [%expr fun () -> [%e body]] [@metaloc config.map_loc span]
-        | (name, def) :: tl -> let name_loc = config.map_loc name.span in
+        | [] -> [%expr fun () -> [%e body]] [@metaloc config.map_loc span |> conv_loc]
+        | (name, def) :: tl -> let name_loc = config.map_loc name.span |> conv_loc in
           Ast_helper.(
             Exp.fun_ 
               ~loc:name_loc
@@ -39,7 +41,7 @@ let make_make_fun config variable_defs =
       let make_object_function defs body =
         let rec generate_bindings defs = match defs with
           | [] -> body
-          | (name, _) :: tl -> let name_loc = config.map_loc name.span in
+          | (name, _) :: tl -> let name_loc = config.map_loc name.span |> conv_loc in
             Ast_helper.Exp.let_ ~loc:name_loc Nonrecursive [
               Ast_helper.(Vb.mk
                             ~loc:name_loc
@@ -57,7 +59,7 @@ let make_make_fun config variable_defs =
                 to_native_type_ref (to_schema_type_ref def.vd_type.item)
               )
             ) in
-            let loc = config.map_loc name.span in
+            let loc = config.map_loc name.span |> conv_loc in
             [%expr
               (
                 [%e Ast_helper.Exp.constant ~loc (Const_string (name.item, None))],
@@ -65,7 +67,7 @@ let make_make_fun config variable_defs =
               )] [@metaloc loc]
           )
           |> Ast_helper.Exp.array in 
-      let loc = config.map_loc span in
+      let loc = config.map_loc span |> conv_loc in
       let variable_ctor_body = 
         [%expr Js.Json.object_ (Js.Dict.fromArray [%e make_var_ctor item])] [@metaloc loc]
       in

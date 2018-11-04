@@ -26,9 +26,6 @@ let find_argument name arguments =
       | a -> Some a
       | exception Not_found -> None)
 
-let string_of_longident longident =
-  Longident.flatten longident |> String.concat "."
-
 let rec unify_type error_marker as_record config span ty (selection_set: selection list spanning option) =
   match ty with
   | Ntr_nullable t ->

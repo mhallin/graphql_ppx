@@ -16,7 +16,8 @@ open Schema
 type t =
   | Empty
   | String of string
-  | FragmentRef of string
+  | FragmentNameRef of string
+  | FragmentQueryRef of string
 
 let rec type_ref_name = function
   | Named n -> n
@@ -58,7 +59,7 @@ let print_directives ds =
          |> String.concat " ") ^ " "
 
 let print_fragment_spread s =
-  [| String "..."; FragmentRef s.fs_name.item; String (" " ^ print_directives s.fs_directives) |] 
+  [| String "..."; FragmentNameRef s.fs_name.item; String (" " ^ print_directives s.fs_directives) |] 
 
 let rec print_type ty = match ty with
   | Tr_named n -> n.item
@@ -148,15 +149,6 @@ let print_definition schema def = match def with
   | Operation { item = operation; _ } -> print_operation schema operation
   | Fragment { item = fragment; _ } -> print_fragment schema fragment
 
-let generate_expr acc = Ast_402.(function
-    | Empty -> acc
-    | String s -> Ast_helper.(Exp.apply
-                                (Exp.ident { Location.txt = Longident.parse "^"; loc = Location.none })
-                                [ "", acc; "", Exp.constant (Asttypes.Const_string (s, None)) ])
-    | FragmentRef f -> Ast_helper.(Exp.apply
-                                     (Exp.ident { Location.txt = Longident.parse "^"; loc = Location.none })
-                                     [ "", acc; "", Exp.ident { Location.txt = Longident.parse (f ^ ".name"); loc = Location.none }]))
-
 module StringSet = Set.Make(String)
 
 let find_fragment_refs parts =
@@ -165,19 +157,17 @@ let find_fragment_refs parts =
     (fun acc -> function
        | Empty -> acc
        | String _ -> acc
-       | FragmentRef r -> StringSet.add r acc)
+       | FragmentNameRef r -> StringSet.add r acc
+       | FragmentQueryRef _ -> acc)
     StringSet.empty
   |> StringSet.elements
-
-let append_fragment_ref acc name = Ast_402.Ast_helper.(
-    Exp.apply
-      (Exp.ident { Location.txt = Longident.parse "^"; loc = Location.none })
-      [ "", acc; "", Exp.ident { Location.txt = Longident.parse (name ^ ".query"); loc = Location.none } ])
 
 let print_document schema defs =
   let parts = defs
               |> List.map (print_definition schema)
               |> Array.concat in
   let fragment_refs = find_fragment_refs parts in
-  let start_expr = Array.fold_left generate_expr Ast_402.(Ast_helper.Exp.constant (Asttypes.Const_string ("", None))) parts in
-  List.fold_left append_fragment_ref start_expr fragment_refs
+  Array.concat [
+    parts;
+    fragment_refs |> Array.of_list |> Array.map (fun ref -> FragmentQueryRef ref)
+  ]

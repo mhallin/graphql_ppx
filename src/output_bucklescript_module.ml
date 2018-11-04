@@ -1,3 +1,4 @@
+open Graphql_ppx_base
 open Result_structure
 open Generator_utils
 
@@ -34,11 +35,45 @@ let ret_type_magic = [
   [%stri type t = MT_Ret.t];
 ]
 
+let emit_printed_query parts =
+  let open Ast_402 in
+  let open Graphql_printer in
+  let generate_expr acc = function
+    | Empty -> acc
+    | String s -> Ast_helper.(Exp.apply
+                                (Exp.ident { Location.txt = Longident.parse "^"; loc = Location.none })
+                                [ "", acc; "", Exp.constant (Asttypes.Const_string (s, None)) ])
+    | FragmentNameRef f -> Ast_helper.(Exp.apply
+                                         (Exp.ident { Location.txt = Longident.parse "^"; loc = Location.none })
+                                         [ "", acc; "", Exp.ident { Location.txt = Longident.parse (f ^ ".name"); loc = Location.none }])
+    | FragmentQueryRef f -> Ast_helper.(Exp.apply
+                                          (Exp.ident { Location.txt = Longident.parse "^"; loc = Location.none })
+                                          [ "", acc; "", Exp.ident { Location.txt = Longident.parse (f ^ ".query"); loc = Location.none }])
+  in
+  Array.fold_left generate_expr Ast_402.(Ast_helper.Exp.constant (Asttypes.Const_string ("", None))) parts
+
+let rec emit_json = Ast_402.(function
+    | `Assoc vs -> 
+      let pairs = Ast_helper.(Exp.array (vs |> List.map (fun (key, value) -> Exp.tuple [
+          Exp.constant (Const_string (key, None));
+          emit_json value
+        ]))) in
+      [%expr Js.Json.object_(Js.Dict.fromArray([%e pairs]))]
+    | `List ls ->
+      let values = Ast_helper.Exp.array (List.map emit_json ls) in
+      [%expr Js.Json.array([%e values])]
+    | `Bool b -> if b then [%expr Js.Json.boolean(true)] else [%expr Js.Json.boolean(false)]
+    | `Null -> [%expr Obj.magic(Js.Undefined.empty)]
+    | `String s -> [%expr Js.Json.string([%e Ast_helper.Exp.constant (Const_string (s, None))])]
+    | `Int i -> [%expr Js.Json.number([%e Ast_helper.Exp.constant (Const_float (string_of_int i))])]
+    | `StringExpr parts -> [%expr Js.Json.string([%e emit_printed_query parts])]
+  )
+
 let make_printed_query config document = 
   let source = Graphql_printer.print_document config.schema document in
-  let reprinted = match config.output_mode with
-    | Apollo_AST -> Ast_serializer_apollo.serialize_document source document
-    | String -> source
+  let reprinted = match Ppx_config.output_mode () with
+    | Ppx_config.Apollo_AST -> Ast_serializer_apollo.serialize_document source document |> emit_json
+    | Ppx_config.String -> emit_printed_query source
   in
   [
     [%stri let ppx_printed_query = [%e reprinted]];
@@ -52,7 +87,7 @@ let generate_default_operation config variable_defs has_error operation res_stru
   else
     let (rec_flag, encoders) = 
       Output_bucklescript_encoder.generate_encoders config (Result_structure.res_loc res_structure) variable_defs in
-    let make_fn, make_with_variables_fn = Unifier.make_make_fun config variable_defs in
+    let make_fn, make_with_variables_fn = Output_bucklescript_unifier.make_make_fun config variable_defs in
     List.concat [
       make_printed_query config [Graphql_ast.Operation operation];
       List.concat [

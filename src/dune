@@ -2,7 +2,12 @@
  (name graphql_ppx_bucklescript)
  (libraries ocaml-migrate-parsetree
             graphql_ppx_base)
- (modules graphql_ppx_bucklescript)
+ (modules graphql_ppx_bucklescript
+          output_bucklescript_decoder
+          output_bucklescript_encoder
+          output_bucklescript_module
+          output_bucklescript_unifier
+          output_bucklescript_utils)
  (flags (:include ../discover/dune.flags))
  (preprocess (pps ppx_tools_versioned.metaquot_402)))
 
@@ -13,7 +18,8 @@
  (wrapped false)
  (kind ppx_rewriter)
  (libraries ocaml-migrate-parsetree
-            graphql_ppx_base)
+            graphql_ppx_base
+            ppxlib)
  (preprocess (pps ppx_tools_versioned.metaquot_402)))
 
 (library
@@ -34,10 +40,7 @@
           log
           multi_visitor
           option
-          output_bucklescript_decoder
-          output_bucklescript_encoder
-          output_bucklescript_module
-          output
+          ppx_config
           read_schema
           result_decoder
           result_ext
@@ -48,13 +51,10 @@
           source_pos
           traversal_utils
           type_utils
-          unifier
           validations)
- (libraries ocaml-migrate-parsetree
-            unix
+ (libraries unix
             result
-            yojson
-            ppx_tools_versioned.metaquot_402)
+            yojson)
  (preprocess (pps ppx_tools_versioned.metaquot_402)))
 
 (rule

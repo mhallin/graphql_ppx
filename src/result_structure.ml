@@ -1,6 +1,6 @@
 type exhaustive_flag = | Exhaustive | Nonexhaustive
 
-type loc = Ast_402.Location.t
+type loc = Source_pos.ast_location
 
 type field_result =
   | Fr_named_field of string * loc * t
