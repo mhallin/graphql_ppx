@@ -1,7 +1,7 @@
 DUNE?=dune
 
 OS:=$(shell uname -s)
-TARGET_BUCKLESCRIPT:=$(filter %4.02.3%,$(shell opam switch show))
+TARGET_BUCKLESCRIPT:=$(shell echo `opam switch show` | grep -s 4.02.3)
 
 build:
 	$(DUNE) build src/bucklescript/graphql_ppx.exe
