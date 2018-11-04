@@ -7,7 +7,7 @@ environment:
       FORK_BRANCH: master
       CYG_ROOT: C:\cygwin64
       OPAM_SWITCH: 4.02.3+mingw64c
-      PACKAGE: graphql_ppx
+      PACKAGE: graphql_ppx_base
       OPAMYES: 1
       INSTALL: false
       REVDEPS: false
@@ -18,7 +18,7 @@ environment:
       FORK_BRANCH: master
       CYG_ROOT: C:\cygwin
       OPAM_SWITCH: 4.02.3+mingw32c
-      PACKAGE: graphql_ppx
+      PACKAGE: graphql_ppx_base
       OPAMYES: 1
       INSTALL: false
       REVDEPS: false

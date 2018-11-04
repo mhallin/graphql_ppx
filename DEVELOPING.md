@@ -20,8 +20,8 @@ eval `opam config env`
 Then, you can install and build graphql_ppx:
 
 ```sh
-opam pin add graphql_ppx . -n
-opam install graphql_ppx --deps-only  # Downloads and builds the OCaml dependencies
+opam pin add graphql_ppx_base . -n
+opam install graphql_ppx_base --deps-only  # Downloads and builds the OCaml dependencies
 make  # Builds graphql_ppx itself
 ```
 
