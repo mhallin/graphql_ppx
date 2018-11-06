@@ -21,4 +21,5 @@ depends: [
   "dune" {build}
   "cppo" {build}
   "ppxlib" {build}
+  "alcotest" {test}
 ]

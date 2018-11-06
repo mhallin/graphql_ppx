@@ -113,23 +113,24 @@ let rewrite_query loc delim query =
         let parts = Result_decoder.unify_document_schema config document in
         Output_native_module.generate_modules config parts
 
-
 let rewrite ~loc ~path:_ expr =
   let open Parsetree in
   match expr with
-  | { pexp_desc = Pexp_constant (Pconst_string (query, delim)); _ } ->
+  | PStr [{ pstr_desc = Pstr_eval ({
+    pexp_loc = loc; 
+    pexp_desc = Pexp_constant (Pconst_string (query, delim)); _ }, _); _ }] ->
     rewrite_query
       (conv_loc_from_ast loc)
       delim
       query
   | _ -> raise (Location.Error (
-      Location.Error.createf ~loc:loc "[%%graphql] accepts a string, e.g. [%%graphql {| { query |}]"
+      Location.Error.createf ~loc "[%%graphql] accepts a string, e.g. [%%graphql {| { query |}]"
     ))
 
 let ext = Extension.declare
     "graphql"
     Extension.Context.module_expr
-    Ast_pattern.(single_expr_payload __)
+    Ast_pattern.__
     rewrite
 
-let () = Ppxlib.Driver.register_transformation "graphql" 
+let () = Ppxlib.Driver.register_transformation ~extensions:[ext] "graphql"

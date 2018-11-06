@@ -1,0 +1,4 @@
+(test
+ (name main)
+ (libraries alcotest yojson)
+ (preprocess (pps graphql_ppx ppxlib.runner)))
