@@ -168,7 +168,7 @@ and generate_record_decoder config loc name fields =
     | `Assoc value ->
       let [%p field_name_tuple_pattern] = [%e field_decoder_tuple]
       in [%e record]
-    | None -> [%e make_error_raiser loc [%expr
+    | value -> [%e make_error_raiser loc [%expr
         "Expected object of type " ^
         [%e const_str_expr name] ^
         ", got " ^ (Yojson.Basic.to_string value)]]]

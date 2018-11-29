@@ -28,3 +28,8 @@ let print_array inner formatter value =
 let array_zipmap f a b =
   let min = min (Array.length a) (Array.length b) in
   Array.init min (fun i -> f a.(i) b.(i))
+
+let opt_eq f a b = match a, b with
+| (Some a), (Some b) -> f a b
+| None, None -> true
+| _ -> false

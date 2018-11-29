@@ -54,7 +54,7 @@ let rec parser_for_type schema loc type_ref =
   | Ntr_list x ->
     let child_parser = parser_for_type schema loc x in
     let loc = conv_loc loc in
-    [%expr fun v -> `Array (Array.map [%e child_parser] v |> Array.to_list)] [@metaloc loc]
+    [%expr fun v -> `List (Array.map [%e child_parser] v |> Array.to_list)] [@metaloc loc]
   | Ntr_nullable x ->
     let child_parser = parser_for_type schema loc x in
     let loc = conv_loc loc in
