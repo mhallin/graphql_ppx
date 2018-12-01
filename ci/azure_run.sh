@@ -11,7 +11,7 @@ export BUCKLESCRIPT_OCAML="4.02.3"
 if [ "$OCAML_VERSION" = "$BUCKLESCRIPT_OCAML" ]; then
     export TARGET_BUCKLESCRIPT=1
 else
-    export TARGET_BUCKLESCRIPT=0
+    export TARGET_BUCKLESCRIPT=
 fi
 
 case "$AGENT_OS" in
@@ -66,7 +66,7 @@ case "$AGENT_OS" in
                     make \
                 )"
         else
-            sh <(curl -sL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)
+            echo | sh <(curl -sL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)
             OPAMYES=1 opam switch create $OCAML_VERSION
             OPAMYES=1 opam switch $OCAML_VERSION
             eval $(opam env)
