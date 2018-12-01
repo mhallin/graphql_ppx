@@ -7,8 +7,11 @@ echo "OCaml version: $OCAML_VERSION"
 
 export BUCKLESCRIPT_OCAML="4.02.3"
 
-[ "$OCAML_VERSION" = "$BUCKLESCRIPT_OCAML" ]
-export TARGET_BUCKLESCRIPT=$?
+if [ "$OCAML_VERSION" = "$BUCKLESCRIPT_OCAML" ]; then
+    export TARGET_BUCKLESCRIPT=1
+else
+    export TARGET_BUCKLESCRIPT=0
+fi
 
 case "$AGENT_OS" in
     Darwin)
