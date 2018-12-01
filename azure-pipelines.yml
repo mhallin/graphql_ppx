@@ -1,0 +1,80 @@
+jobs:
+  - job: bucklescript_linux
+
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    
+    steps:
+    - script: OCAML_VERSION=4.02.3 ./ci/azure_run.sh
+
+  - job: bucklescript_mac
+
+    pool:
+      vmImage: xcode9-macos10.13
+
+    steps:
+    - script: OCAML_VERSION=4.02.3 ./ci/azure_run.sh
+
+  - job: native_4_04_2_linux
+
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    
+    steps:
+    - script: OCAML_VERSION=ocaml-base-compiler.4.04.2 ./ci/azure_run.sh
+
+  - job: native_4_04_2_mac
+
+    pool:
+      vmImage: xcode9-macos10.13
+
+    steps:
+    - script: OCAML_VERSION=ocaml-base-compiler.4.04.2 ./ci/azure_run.sh
+
+  - job: native_4_05_0_linux
+
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    
+    steps:
+    - script: OCAML_VERSION=ocaml-base-compiler.4.05.0 ./ci/azure_run.sh
+
+  - job: native_4_05_0_mac
+
+    pool:
+      vmImage: xcode9-macos10.13
+
+    steps:
+    - script: OCAML_VERSION=ocaml-base-compiler.4.05.0 ./ci/azure_run.sh
+
+  - job: native_4_06_1_linux
+
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    
+    steps:
+    - script: OCAML_VERSION=ocaml-base-compiler.4.06.1 ./ci/azure_run.sh
+
+  - job: native_4_06_1_mac
+
+    pool:
+      vmImage: xcode9-macos10.13
+
+    steps:
+    - script: OCAML_VERSION=ocaml-base-compiler.4.06.1 ./ci/azure_run.sh
+
+  - job: native_4_07_1_linux
+
+    pool:
+      vmImage: 'Ubuntu 16.04'
+    
+    steps:
+    - script: OCAML_VERSION=ocaml-base-compiler.4.07.1 ./ci/azure_run.sh
+
+  - job: native_4_07_1_mac
+
+    pool:
+      vmImage: xcode9-macos10.13
+
+    steps:
+    - script: OCAML_VERSION=ocaml-base-compiler.4.07.1 ./ci/azure_run.sh
