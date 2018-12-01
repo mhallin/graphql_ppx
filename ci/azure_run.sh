@@ -42,7 +42,7 @@ case "$AGENT_OS" in
         OPAMYES=1 opam pin add graphql_ppx_base . -n
         OPAMYES=1 opam install graphql_ppx_base --deps-only
 
-        if [ $TARGET_BUCKLESCRIPT = 0 ]; then
+        if [ "$TARGET_BUCKLESCRIPT" = 0 ]; then
             OPAMYES=1 opam pin add graphql_ppx . -n
             OPAMYES=1 opam install graphql_ppx --deps-only
         fi
@@ -52,7 +52,7 @@ case "$AGENT_OS" in
 
     Linux)
 
-        if [ $TARGET_BUCKLESCRIPT = 1 ]; then
+        if [ "$TARGET_BUCKLESCRIPT" = "1" ]; then
             chmod -R a+w .
             docker run --rm -v `pwd`:/workspace ocaml/opam2:alpine sh -c "\
                 sudo apk add m4 && \
@@ -69,7 +69,7 @@ case "$AGENT_OS" in
             sudo apt-get update -y
             sudo apt-get install -y git
             echo | sh <(curl -sL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)
-            OPAMYES=1 opam init --disable-sandboxing
+            OPAMYES=1 opam init --disable-sandboxing --bare
             OPAMYES=1 opam switch create $OCAML_VERSION
             OPAMYES=1 opam switch $OCAML_VERSION
             eval $(opam env)
@@ -82,13 +82,13 @@ case "$AGENT_OS" in
         ;;
 esac
 
-if [ $TARGET_BUCKLESCRIPT = 1 ]; then
+if [ "$TARGET_BUCKLESCRIPT" = "1" ]; then
     IS_GRAPHQL_PPX_CI=true yarn
 fi
 
 make only-test
 
-if [ $TARGET_BUCKLESCRIPT = 1 ]; then
+if [ "$TARGET_BUCKLESCRIPT" = "1" ]; then
     NODE_ENV=production make only-test
 fi
 
