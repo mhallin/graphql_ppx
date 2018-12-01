@@ -305,9 +305,9 @@ and generate_poly_variant_union config loc name fragments exhaustive_flag =
             " is missing the __typename field"]]
         | Some typename -> begin match typename with
             | `String typename -> ([%e typename_matcher]: [%t union_ty])
-            | None -> [%e make_error_raiser loc [%expr
+            | _ -> [%e make_error_raiser loc [%expr
                 "Union " ^ [%e const_str_expr name] ^
                 " has a __typename field that is not a string"]]
           end
       end
-    | None -> [%e make_error_raiser loc [%expr "Expected union " ^ [%e const_str_expr name] ^ " to be an object, got " ^ (Yojson.Basic.to_string value)]]] [@metaloc loc]
+    | _ -> [%e make_error_raiser loc [%expr "Expected union " ^ [%e const_str_expr name] ^ " to be an object, got " ^ (Yojson.Basic.to_string value)]]] [@metaloc loc]
