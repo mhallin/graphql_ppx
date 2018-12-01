@@ -67,7 +67,7 @@ case "$AGENT_OS" in
                 )"
         else
             sudo apt-get update -y
-            sudo apt-get install -y bubblewrap git
+            sudo apt-get install -y git
             echo | sh <(curl -sL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)
             OPAMYES=1 opam init --disable-sandboxing
             OPAMYES=1 opam switch create $OCAML_VERSION
