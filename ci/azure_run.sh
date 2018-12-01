@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eu
+set -u
 set +x
 
 echo "Agent OS: $AGENT_OS"
@@ -24,6 +24,7 @@ case "$AGENT_OS" in
 esac
 
 echo "graphql_ppx target name: $TARGET_NAME"
+echo "Targeting bucklescript: $TARGET_BUCKLESCRIPT"
 
 case "$AGENT_OS" in
     Darwin)
@@ -53,7 +54,7 @@ case "$AGENT_OS" in
 
         if [ $TARGET_BUCKLESCRIPT = 1 ]; then
             chmod -R a+w .
-            docker run --rm -v `pwd`:/workspace -it ocaml/opam2:alpine sh -c "\
+            docker run --rm -v `pwd`:/workspace ocaml/opam2:alpine sh -c "\
                 sudo apk add m4 && \
                 OPAMYES=1 opam switch create $OCAML_VERSION &&
                 OPAMYES=1 opam switch $OCAML_VERSION &&
