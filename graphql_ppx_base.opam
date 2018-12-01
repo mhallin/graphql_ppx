@@ -18,6 +18,6 @@ depends: [
   "result" {build}
   "yojson" {build}
   "ppx_tools_versioned" {build}
-  "dune" {build}
+  "dune" {build & "< 1.5.0"}
   "cppo" {build}
 ]
