@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -eu
+set +x
 
 echo "Agent OS: $AGENT_OS"
 echo "OCaml version: $OCAML_VERSION"
