@@ -6,16 +6,16 @@ jobs:
     
     steps:
     - script: |
-      set -e
+        set -e
 
-      export TARGET_NAME=linux-x64
-      ./ci/travis_before_install.sh
-      IS_GRAPHQL_PPX_CI=true yarn
-      ./ci/before_script_linux.sh
-      ./ci/build_script_linux.sh
-      make only-test TARGET_BUCKLESCRIPT=1
-      NODE_ENV=production make only-test TARGET_BUCKLESCRIPT=1
-      mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
+        export TARGET_NAME=linux-x64
+        ./ci/travis_before_install.sh
+        IS_GRAPHQL_PPX_CI=true yarn
+        ./ci/before_script_linux.sh
+        ./ci/build_script_linux.sh
+        make only-test TARGET_BUCKLESCRIPT=1
+        NODE_ENV=production make only-test TARGET_BUCKLESCRIPT=1
+        mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
 
   - job: Bucklescript on Mac
 
@@ -24,13 +24,13 @@ jobs:
     
     steps:
     - script: |
-      set -e
+        set -e
 
-      export TARGET_NAME=darwin-x64
-      ./ci/travis_before_install.sh
-      IS_GRAPHQL_PPX_CI=true yarn
-      ./ci/before_script_osx.sh
-      ./ci/build_script_osx.sh
-      make only-test TARGET_BUCKLESCRIPT=1
-      NODE_ENV=production make only-test TARGET_BUCKLESCRIPT=1
-      mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
+        export TARGET_NAME=darwin-x64
+        ./ci/travis_before_install.sh
+        IS_GRAPHQL_PPX_CI=true yarn
+        ./ci/before_script_osx.sh
+        ./ci/build_script_osx.sh
+        make only-test TARGET_BUCKLESCRIPT=1
+        NODE_ENV=production make only-test TARGET_BUCKLESCRIPT=1
+        mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
