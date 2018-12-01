@@ -40,11 +40,11 @@ case "$AGENT_OS" in
 
         OPAMYES=1 opam update
         OPAMYES=1 opam pin add graphql_ppx_base . -n
-        OPAMYES=1 opam install graphql_ppx_base --deps-only
+        OPAMYES=1 opam install graphql_ppx_base --deps-only --with-test
 
-        if [ "$TARGET_BUCKLESCRIPT" = 0 ]; then
+        if [ "$TARGET_BUCKLESCRIPT" != "1" ]; then
             OPAMYES=1 opam pin add graphql_ppx . -n
-            OPAMYES=1 opam install graphql_ppx --deps-only
+            OPAMYES=1 opam install graphql_ppx --deps-only --with-test
         fi
 
         make
@@ -75,9 +75,9 @@ case "$AGENT_OS" in
             eval $(opam env)
             OPAMYES=1 opam update
             OPAMYES=1 opam pin add graphql_ppx_base . -n
-            OPAMYES=1 opam install graphql_ppx_base --deps-only
+            OPAMYES=1 opam install graphql_ppx_base --deps-only --with-test
             OPAMYES=1 opam pin add graphql_ppx . -n
-            OPAMYES=1 opam install graphql_ppx --deps-only
+            OPAMYES=1 opam install graphql_ppx --deps-only --with-test
         fi
         ;;
 esac
