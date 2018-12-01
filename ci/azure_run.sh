@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -u
+set -eu
 set +x
 
 echo "Agent OS: $AGENT_OS"
@@ -30,7 +30,7 @@ case "$AGENT_OS" in
     Darwin)
         brew update
         brew unlink python
-        brew install aspcud awscli yarn opam ocaml
+        brew install aspcud awscli yarn opam ocaml || true
 
         OPAMYES=1 opam init
         OPAMYES=1 opam switch create $OCAML_VERSION
@@ -79,7 +79,7 @@ case "$AGENT_OS" in
         ;;
 esac
 
-if [ $TARGET_BUCKLESCRIPT = 1]; then
+if [ $TARGET_BUCKLESCRIPT = 1 ]; then
     IS_GRAPHQL_PPX_CI=true yarn
 fi
 
