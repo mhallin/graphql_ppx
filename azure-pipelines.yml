@@ -1,5 +1,5 @@
 jobs:
-  - job: Bucklescript on Linux
+  - job: bucklescript_linux
 
     pool:
       vmImage: 'Ubuntu 16.04'
@@ -17,7 +17,7 @@ jobs:
         NODE_ENV=production make only-test TARGET_BUCKLESCRIPT=1
         mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
 
-  - job: Bucklescript on Mac
+  - job: bucklescript_mac
 
     pool:
       vmImage: xcode9-macos10.13
