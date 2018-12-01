@@ -90,6 +90,6 @@ make only-test
 
 if [ "$TARGET_BUCKLESCRIPT" = "1" ]; then
     NODE_ENV=production make only-test
+    mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
 fi
 
-mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
