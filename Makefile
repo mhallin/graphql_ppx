@@ -23,7 +23,7 @@ only-test: graphql_schema.json
 	if [ "$(TARGET_BUCKLESCRIPT)" = "" ]; then dune runtest; fi
 
 graphql_schema.json: schema.gql
-	node ./node_modules/gql-tools/cli/gqlschema.js -o $@ $<
+	node convertSchema $< > $@
 
 clean:
 	$(DUNE) clean
