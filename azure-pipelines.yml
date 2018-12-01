@@ -5,32 +5,28 @@ jobs:
       vmImage: 'Ubuntu 16.04'
     
     steps:
-    - script: |
-        set -e
-
-        export TARGET_NAME=linux-x64
-        ./ci/travis_before_install.sh
-        IS_GRAPHQL_PPX_CI=true yarn
-        ./ci/before_script_linux.sh
-        ./ci/build_script_linux.sh
-        make only-test TARGET_BUCKLESCRIPT=1
-        NODE_ENV=production make only-test TARGET_BUCKLESCRIPT=1
-        mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
+    - script: OCAML_VERSION=4.02.3 ./ci/azure_run.sh
 
   - job: bucklescript_mac
 
     pool:
       vmImage: xcode9-macos10.13
+
+    steps:
+    - script: OCAML_VERSION=4.02.3 ./ci/azure_run.sh
+
+  - job: native_4_04_2_linux
+
+    pool:
+      vmImage: 'Ubuntu 16.04'
     
     steps:
-    - script: |
-        set -e
+    - script: OCAML_VERSION=4.04.2 ./ci/azure_run.sh
 
-        export TARGET_NAME=darwin-x64
-        ./ci/travis_before_install.sh
-        IS_GRAPHQL_PPX_CI=true yarn
-        ./ci/before_script_osx.sh
-        ./ci/build_script_osx.sh
-        make only-test TARGET_BUCKLESCRIPT=1
-        NODE_ENV=production make only-test TARGET_BUCKLESCRIPT=1
-        mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
+  - job: native_4_04_2_mac
+
+    pool:
+      vmImage: xcode9-macos10.13
+
+    steps:
+    - script: OCAML_VERSION=4.04.2 ./ci/azure_run.sh
