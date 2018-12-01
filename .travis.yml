@@ -20,8 +20,8 @@ before_script:
 
 script:
   - ./ci/build_script_$TRAVIS_OS_NAME.sh
-  - make only-test
-  - NODE_ENV=production make only-test
+  - make only-test TARGET_BUCKLESCRIPT=1
+  - NODE_ENV=production make only-test TARGET_BUCKLESCRIPT=1
   - mv graphql_ppx.exe graphql_ppx-$TARGET_NAME.exe
 
 deploy:
