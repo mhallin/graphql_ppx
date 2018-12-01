@@ -33,8 +33,6 @@ case "$AGENT_OS" in
         brew update
         brew unlink python
         brew install aspcud awscli yarn opam ocaml
-        curl -L https://github.com/aktau/github-release/releases/download/v0.7.2/darwin-amd64-github-release.tar.bz2 | tar xjf -
-        mv bin/darwin/amd64/github-release .
 
         OPAMYES=1 opam init
         OPAMYES=1 opam switch create $OCAML_VERSION
