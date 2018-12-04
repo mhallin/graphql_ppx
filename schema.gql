@@ -54,6 +54,7 @@ type Query {
 
 type Mutation {
   mutationWithError: MutationWithErrorResult!
+  mutationWithOptionalArgument(field: String): MutationWithErrorResult!
 }
 
 type Subscription {

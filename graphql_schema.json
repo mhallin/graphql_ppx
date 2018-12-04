@@ -14,11 +14,11 @@
         {
           "kind": "OBJECT",
           "name": "Query",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "stringField",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -34,7 +34,7 @@
             },
             {
               "name": "variousScalars",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -50,7 +50,7 @@
             },
             {
               "name": "lists",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -66,7 +66,7 @@
             },
             {
               "name": "users",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -90,11 +90,11 @@
             },
             {
               "name": "scalarsInput",
-              "description": null,
+              "description": "",
               "args": [
                 {
                   "name": "arg",
-                  "description": null,
+                  "description": "",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -121,11 +121,11 @@
             },
             {
               "name": "listsInput",
-              "description": null,
+              "description": "",
               "args": [
                 {
                   "name": "arg",
-                  "description": null,
+                  "description": "",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -152,11 +152,11 @@
             },
             {
               "name": "recursiveInput",
-              "description": null,
+              "description": "",
               "args": [
                 {
                   "name": "arg",
-                  "description": null,
+                  "description": "",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -183,11 +183,11 @@
             },
             {
               "name": "nonrecursiveInput",
-              "description": null,
+              "description": "",
               "args": [
                 {
                   "name": "arg",
-                  "description": null,
+                  "description": "",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -214,11 +214,11 @@
             },
             {
               "name": "enumInput",
-              "description": null,
+              "description": "",
               "args": [
                 {
                   "name": "arg",
-                  "description": null,
+                  "description": "",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -245,11 +245,11 @@
             },
             {
               "name": "argNamedQuery",
-              "description": null,
+              "description": "",
               "args": [
                 {
                   "name": "query",
-                  "description": null,
+                  "description": "",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -276,11 +276,11 @@
             },
             {
               "name": "customScalarField",
-              "description": null,
+              "description": "",
               "args": [
                 {
                   "name": "argOptional",
-                  "description": null,
+                  "description": "",
                   "type": {
                     "kind": "SCALAR",
                     "name": "CustomScalar",
@@ -290,7 +290,7 @@
                 },
                 {
                   "name": "argRequired",
-                  "description": null,
+                  "description": "",
                   "type": {
                     "kind": "NON_NULL",
                     "name": null,
@@ -317,7 +317,7 @@
             },
             {
               "name": "dogOrHuman",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -333,7 +333,7 @@
             },
             {
               "name": "nestedObject",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -366,11 +366,11 @@
         {
           "kind": "OBJECT",
           "name": "VariousScalars",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "nullableString",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "SCALAR",
@@ -382,7 +382,7 @@
             },
             {
               "name": "string",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -398,7 +398,7 @@
             },
             {
               "name": "nullableInt",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "SCALAR",
@@ -410,7 +410,7 @@
             },
             {
               "name": "int",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -426,7 +426,7 @@
             },
             {
               "name": "nullableFloat",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "SCALAR",
@@ -438,7 +438,7 @@
             },
             {
               "name": "float",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -454,7 +454,7 @@
             },
             {
               "name": "nullableBoolean",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "SCALAR",
@@ -466,7 +466,7 @@
             },
             {
               "name": "boolean",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -482,7 +482,7 @@
             },
             {
               "name": "nullableID",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "SCALAR",
@@ -494,7 +494,7 @@
             },
             {
               "name": "id",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -557,11 +557,11 @@
         {
           "kind": "OBJECT",
           "name": "Lists",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "nullableOfNullable",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "LIST",
@@ -577,7 +577,7 @@
             },
             {
               "name": "nullableOfNonNullable",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "LIST",
@@ -597,7 +597,7 @@
             },
             {
               "name": "nonNullableOfNullable",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -617,7 +617,7 @@
             },
             {
               "name": "nonNullableOfNonNullable",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -648,11 +648,11 @@
         {
           "kind": "INTERFACE",
           "name": "User",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "id",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -691,12 +691,12 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "VariousScalarsInput",
-          "description": null,
+          "description": "",
           "fields": null,
           "inputFields": [
             {
               "name": "nullableString",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
@@ -706,7 +706,7 @@
             },
             {
               "name": "string",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -720,7 +720,7 @@
             },
             {
               "name": "nullableInt",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "SCALAR",
                 "name": "Int",
@@ -730,7 +730,7 @@
             },
             {
               "name": "int",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -744,7 +744,7 @@
             },
             {
               "name": "nullableFloat",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "SCALAR",
                 "name": "Float",
@@ -754,7 +754,7 @@
             },
             {
               "name": "float",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -768,7 +768,7 @@
             },
             {
               "name": "nullableBoolean",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "SCALAR",
                 "name": "Boolean",
@@ -778,7 +778,7 @@
             },
             {
               "name": "boolean",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -792,7 +792,7 @@
             },
             {
               "name": "nullableID",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "SCALAR",
                 "name": "ID",
@@ -802,7 +802,7 @@
             },
             {
               "name": "id",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -822,12 +822,12 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "ListsInput",
-          "description": null,
+          "description": "",
           "fields": null,
           "inputFields": [
             {
               "name": "nullableOfNullable",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "LIST",
                 "name": null,
@@ -841,7 +841,7 @@
             },
             {
               "name": "nullableOfNonNullable",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "LIST",
                 "name": null,
@@ -859,7 +859,7 @@
             },
             {
               "name": "nonNullableOfNullable",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -877,7 +877,7 @@
             },
             {
               "name": "nonNullableOfNonNullable",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -905,12 +905,12 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "RecursiveInput",
-          "description": null,
+          "description": "",
           "fields": null,
           "inputFields": [
             {
               "name": "otherField",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
@@ -920,7 +920,7 @@
             },
             {
               "name": "inner",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "INPUT_OBJECT",
                 "name": "RecursiveInput",
@@ -930,7 +930,7 @@
             },
             {
               "name": "enum",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "ENUM",
                 "name": "SampleField",
@@ -946,26 +946,26 @@
         {
           "kind": "ENUM",
           "name": "SampleField",
-          "description": null,
+          "description": "",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
           "enumValues": [
             {
               "name": "FIRST",
-              "description": null,
+              "description": "",
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
               "name": "SECOND",
-              "description": null,
+              "description": "",
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
               "name": "THIRD",
-              "description": null,
+              "description": "",
               "isDeprecated": false,
               "deprecationReason": null
             }
@@ -975,12 +975,12 @@
         {
           "kind": "INPUT_OBJECT",
           "name": "NonrecursiveInput",
-          "description": null,
+          "description": "",
           "fields": null,
           "inputFields": [
             {
               "name": "field",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "SCALAR",
                 "name": "String",
@@ -990,7 +990,7 @@
             },
             {
               "name": "enum",
-              "description": null,
+              "description": "",
               "type": {
                 "kind": "ENUM",
                 "name": "SampleField",
@@ -1006,7 +1006,7 @@
         {
           "kind": "SCALAR",
           "name": "CustomScalar",
-          "description": null,
+          "description": "",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -1016,11 +1016,11 @@
         {
           "kind": "OBJECT",
           "name": "CustomScalarObject",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "nullable",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "SCALAR",
@@ -1032,7 +1032,7 @@
             },
             {
               "name": "nonNullable",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -1055,7 +1055,7 @@
         {
           "kind": "UNION",
           "name": "DogOrHuman",
-          "description": null,
+          "description": "",
           "fields": null,
           "inputFields": null,
           "interfaces": null,
@@ -1076,11 +1076,11 @@
         {
           "kind": "OBJECT",
           "name": "Dog",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "name",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -1096,7 +1096,7 @@
             },
             {
               "name": "barkVolume",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -1119,11 +1119,11 @@
         {
           "kind": "OBJECT",
           "name": "Human",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "name",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -1146,11 +1146,11 @@
         {
           "kind": "OBJECT",
           "name": "NestedObject",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "inner",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "OBJECT",
@@ -1162,7 +1162,7 @@
             },
             {
               "name": "field",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -1185,12 +1185,39 @@
         {
           "kind": "OBJECT",
           "name": "Mutation",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "mutationWithError",
-              "description": null,
+              "description": "",
               "args": [],
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "OBJECT",
+                  "name": "MutationWithErrorResult",
+                  "ofType": null
+                }
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "mutationWithOptionalArgument",
+              "description": "",
+              "args": [
+                {
+                  "name": "field",
+                  "description": "",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "String",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                }
+              ],
               "type": {
                 "kind": "NON_NULL",
                 "name": null,
@@ -1212,11 +1239,11 @@
         {
           "kind": "OBJECT",
           "name": "MutationWithErrorResult",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "value",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "OBJECT",
@@ -1228,7 +1255,7 @@
             },
             {
               "name": "errors",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "LIST",
@@ -1255,11 +1282,11 @@
         {
           "kind": "OBJECT",
           "name": "SampleResult",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "stringField",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -1282,11 +1309,11 @@
         {
           "kind": "OBJECT",
           "name": "SampleError",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "field",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -1302,7 +1329,7 @@
             },
             {
               "name": "message",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -1325,11 +1352,11 @@
         {
           "kind": "OBJECT",
           "name": "Subscription",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "simpleSubscription",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -2190,11 +2217,11 @@
         {
           "kind": "INTERFACE",
           "name": "Name",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "name",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -2223,11 +2250,11 @@
         {
           "kind": "INTERFACE",
           "name": "Anonymous",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "anonymousId",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -2256,11 +2283,11 @@
         {
           "kind": "OBJECT",
           "name": "AdminUser",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "id",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -2276,7 +2303,7 @@
             },
             {
               "name": "name",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -2310,11 +2337,11 @@
         {
           "kind": "OBJECT",
           "name": "AnonymousUser",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "id",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -2330,7 +2357,7 @@
             },
             {
               "name": "anonymousId",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -2364,11 +2391,11 @@
         {
           "kind": "OBJECT",
           "name": "OtherUser",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "id",
-              "description": null,
+              "description": "",
               "args": [],
               "type": {
                 "kind": "NON_NULL",
@@ -2397,15 +2424,15 @@
         {
           "kind": "OBJECT",
           "name": "WithArgField",
-          "description": null,
+          "description": "",
           "fields": [
             {
               "name": "argField",
-              "description": null,
+              "description": "",
               "args": [
                 {
                   "name": "arg1",
-                  "description": null,
+                  "description": "",
                   "type": {
                     "kind": "SCALAR",
                     "name": "String",
@@ -2415,7 +2442,7 @@
                 },
                 {
                   "name": "arg2",
-                  "description": null,
+                  "description": "",
                   "type": {
                     "kind": "SCALAR",
                     "name": "Int",
