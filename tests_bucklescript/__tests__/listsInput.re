@@ -21,7 +21,6 @@ Jest.(describe("Lists as query arguments through input object", () => {
       {
         "arg": {
           "nullableOfNullable": ["x", null, "y"],
-          "nullableOfNonNullable": null,
           "nonNullableOfNullable": ["a", null, "b"],
           "nonNullableOfNonNullable": ["1", "2", "3"]
         }

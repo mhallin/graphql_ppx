@@ -69,6 +69,9 @@ let rec parser_for_type schema loc type_ref =
     | Some ty ->
       function_name_string ty |> ident_from_string (conv_loc loc)
 
+let filter_out_null_values =
+  [%expr Js.Array.filter (fun (_, value) -> value <> Js.Json.null)]
+
 let json_of_fields schema loc expr fields =
   let field_array_exprs = fields |> List.map
                             (fun {am_name; am_arg_type; _} ->
@@ -79,8 +82,11 @@ let json_of_fields schema loc expr fields =
                                  [%e parser] ([%e expr] ## [%e ident_from_string (conv_loc loc) am_name])
                                )] [@metaloc conv_loc loc]) in
   let field_array = Ast_helper.Exp.array field_array_exprs in
-  [%expr Js.Json.object_ (Js.Dict.fromArray [%e field_array])] [@metaloc conv_loc loc]
-
+  [%expr Js.Json.object_ (
+    [%e field_array]
+    |> [%e filter_out_null_values]
+    |> Js.Dict.fromArray
+    )] [@metaloc conv_loc loc]
 let generate_encoder config (spanning, x) =
   let loc = config.map_loc spanning.span in
   let body = match x with

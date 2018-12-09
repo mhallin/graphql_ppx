@@ -23,10 +23,8 @@ Jest.(describe("Recursive input types", () => {
       == Js.Json.parseExn({| {
         "arg": {
           "otherField": "test",
-          "enum": null,
           "inner": {
             "otherField": "inner",
-            "inner": null,
             "enum": "SECOND"
           }
         }
