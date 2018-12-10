@@ -6,6 +6,7 @@ type config = {
   verbose_logging: bool;
   output_mode: output_mode;
   verbose_error_handling: bool;
+  apollo_mode: bool;
   root_directory: string;
   schema_file: string;
   raise_error_with_loc: 'a. Source_pos.ast_location -> string -> 'a
@@ -20,6 +21,9 @@ let verbose_logging () =
 
 let output_mode () =
   (!config_ref |> Option.unsafe_unwrap).output_mode
+
+let apollo_mode () =
+  (!config_ref |> Option.unsafe_unwrap).apollo_mode
 
 let verbose_error_handling () =
   (!config_ref |> Option.unsafe_unwrap).verbose_error_handling

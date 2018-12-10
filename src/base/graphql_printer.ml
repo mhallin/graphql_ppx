@@ -70,7 +70,11 @@ let rec print_type ty = match ty with
 let rec print_selection_set schema ty ss = match ss with
   | [] -> [||]
   | l ->
-    let add_typename = match ty with | Interface _ | Union _ -> true | _ -> false in
+    let add_typename = match ty with
+    | Interface _ | Union _ -> true 
+    | Object _ -> Ppx_config.apollo_mode ()
+    | _ -> false
+    in
     Array.concat [
       [|
         String "{\n";
