@@ -114,6 +114,9 @@ let mapper argv =
               | _ -> true
               | exception Not_found -> true
             end);
+      apollo_mode = (match List.find ((=) "-apollo-mode") argv with
+          | _ -> true
+          | exception Not_found -> false);
       root_directory = Sys.getcwd ();
       schema_file = (match List.find (is_prefixed "-schema=") argv with
           | arg -> drop_prefix "-schema=" arg

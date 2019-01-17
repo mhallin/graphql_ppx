@@ -4,7 +4,7 @@
         "__tests__"
     ],
     "ppx-flags": [
-        "../graphql_ppx.exe"
+        "../graphql_ppx.exe -apollo-mode"
     ],
     "bs-dependencies": [
         "@glennsl/bs-jest"
