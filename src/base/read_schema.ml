@@ -214,15 +214,18 @@ let rec find_file_towards_root dir file =
 
 exception Ppx_cache_dir_is_not_dir
 
+let remove_last_slash abs_path = 
+  let length = String.length abs_path in
+  match String.get abs_path (length - 1) with
+  | '/' -> String.sub abs_path 0 (length - 1)
+  | _ -> abs_path
+
 let create_dir_if_not_exist abs_path =
-  if Sys.file_exists abs_path then
-    let file_stat = Unix.stat abs_path in
-    Unix.(
-      match file_stat.st_kind with
-      | S_DIR -> ()
-      | _ -> raise Ppx_cache_dir_is_not_dir
-    )
-  else
+  let sanitized_path = remove_last_slash abs_path in
+  match Sys.is_directory sanitized_path with
+  | true -> ()
+  | false -> print_endline (abs_path^" is not a directory.")
+  | exception Sys_error (_msg) -> begin
     let () = Log.log ("[make_cache_dir]"^abs_path) in
     match Unix.mkdir abs_path 0o755 with
     | () -> ()
@@ -232,6 +235,7 @@ let create_dir_if_not_exist abs_path =
       | Unix.EEXIST -> () (* It's Ok since the build tool e.g. BuckleScript could be multi-threading *)
       | error -> raise (Unix.Unix_error(error, cmd, msg))
     end
+  end
 
 (**
  * Naming Explaniation
