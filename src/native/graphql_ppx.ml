@@ -73,6 +73,9 @@ let () = Ppx_config.(set_config {
             | _ -> true
             | exception Not_found -> true
           end);
+    apollo_mode = (match List.find ((=) "-apollo-mode") argv with
+        | _ -> true
+        | exception Not_found -> false);
     root_directory = Sys.getcwd ();
     schema_file = (match List.find (is_prefixed "-schema=") argv with
         | arg -> drop_prefix "-schema=" arg
@@ -117,8 +120,8 @@ let rewrite ~loc ~path:_ expr =
   let open Parsetree in
   match expr with
   | PStr [{ pstr_desc = Pstr_eval ({
-    pexp_loc = loc; 
-    pexp_desc = Pexp_constant (Pconst_string (query, delim)); _ }, _); _ }] ->
+      pexp_loc = loc; 
+      pexp_desc = Pexp_constant (Pconst_string (query, delim)); _ }, _); _ }] ->
     rewrite_query
       (conv_loc_from_ast loc)
       delim
