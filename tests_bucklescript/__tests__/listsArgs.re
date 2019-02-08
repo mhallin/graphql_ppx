@@ -27,8 +27,6 @@ Jest.(describe("Lists as query arguments", () => {
       ())##variables)
     == Js.Json.parseExn({|
       {
-        "nullableOfNullable": null,
-        "nullableOfNonNullable": null,
         "nonNullableOfNullable": [],
         "nonNullableOfNonNullable": []
       }
@@ -43,7 +41,6 @@ Jest.(describe("Lists as query arguments", () => {
     == Js.Json.parseExn({|
       {
         "nullableOfNullable": ["x", null, "y"],
-        "nullableOfNonNullable": null,
         "nonNullableOfNullable": ["a", null, "b"],
         "nonNullableOfNonNullable": ["1", "2", "3"]
       }

@@ -39,15 +39,10 @@ Jest.(describe("Scalars as arguments", () => {
       ~id="an ID",
       ())##variables)
       == Js.Json.parseExn({| {
-        "nullableString": null,
         "string": "a string",
-        "nullableInt": null,
         "int": 123,
-        "nullableFloat": null,
         "float": 1234.5,
-        "nullableBoolean": null,
         "boolean": true,
-        "nullableID": null,
         "id": "an ID"
       } |}));
 

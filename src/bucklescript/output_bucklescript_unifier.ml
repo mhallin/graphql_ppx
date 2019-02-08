@@ -69,7 +69,11 @@ let make_make_fun config variable_defs =
           |> Ast_helper.Exp.array in 
       let loc = config.map_loc span |> conv_loc in
       let variable_ctor_body = 
-        [%expr Js.Json.object_ (Js.Dict.fromArray [%e make_var_ctor item])] [@metaloc loc]
+        [%expr Js.Json.object_ (
+          [%e make_var_ctor item]
+          |> [%e Output_bucklescript_encoder.filter_out_null_values]
+          |> Js.Dict.fromArray
+          )] [@metaloc loc]
       in
       (
         make_labelled_function item (make_make_triple loc variable_ctor_body),
