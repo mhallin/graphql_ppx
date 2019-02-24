@@ -5,10 +5,7 @@
   "license": "BSD 3-clause",
   "esy": {
     "build": [
-      [ "dune", "build", "@graphql_ppx" ]
-    ],
-    "install": [
-      "esy-installer"
+      [ "dune", "build", "-p", "graphql_ppx" ]
     ],
     "buildsInSource": "_build"
   },
@@ -17,10 +14,11 @@
     "@opam/result": "*",
     "@opam/yojson": "*",
     "@opam/ppx_tools_versioned": "*",
-    "@opam/dune": "*"
+    "@opam/dune": "*",
+    "@opam/ppxlib": "^0.5.0"
   },
   "scripts": {
-    "test": ["make", "test"]
+    "test": "make test"
   },
   "peerDependencies": {
     "ocaml": " >= 4.2.1  < 4.7.0"
