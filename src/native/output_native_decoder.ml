@@ -18,25 +18,25 @@ let make_error_raiser loc message =
     [%expr raise (Failure ("Unexpected GraphQL query response"))]
 
 let string_decoder loc =
-  [%expr match value with
-    | `String value -> value
+  [%expr match (value: Yojson.Basic.json) with
+    | `String (value: string) -> value
     | _ -> [%e make_error_raiser loc [%expr "Expected string, got " ^ (Yojson.Basic.to_string value)]]] [@metaloc loc]
 
 let id_decoder = string_decoder
 
 let float_decoder loc =
-  [%expr match value with
+  [%expr match (value: Yojson.Basic.json) with
     | `Float value -> value
     | `Int value -> float_of_int value
     | _ -> [%e make_error_raiser loc [%expr "Expected float, got " ^ (Yojson.Basic.to_string value)]]] [@metaloc loc]
 
 let int_decoder loc =
-  [%expr match value with
+  [%expr match (value: Yojson.Basic.json) with
     | `Int value -> value
     | _ -> [%e make_error_raiser loc [%expr "Expected int, got " ^ (Yojson.Basic.to_string value)]]] [@metaloc loc]
 
 let boolean_decoder loc =
-  [%expr match value with
+  [%expr match (value: Yojson.Basic.json) with
     | `Bool value -> value
     | _ -> [%e make_error_raiser loc [%expr "Expected boolean, got " ^ (Yojson.Basic.to_string value)]]] [@metaloc loc]
 
@@ -59,7 +59,7 @@ let generate_poly_enum_decoder loc enum_meta =
         (List.map (fun { evm_name; _ } -> Rtag ({ txt = evm_name; loc }, [], true, [])) enum_meta.em_values)
         Closed None) [@metaloc loc]
   in
-  [%expr match value with 
+  [%expr match (value: Yojson.Basic.json) with 
     | `String value -> ([%e match_expr]: [%t enum_ty])
     | _ -> [%e make_error_raiser loc [%expr
         "Expected enum value for " ^
@@ -99,7 +99,7 @@ and generate_nullable_decoder config loc inner =
     | value -> Some [%e generate_decoder config inner]] [@metaloc loc]
 
 and generate_array_decoder config loc inner =
-  [%expr match value with
+  [%expr match (value: Yojson.Basic.json) with
     | `List value -> List.map (fun value -> [%e generate_decoder config inner]) value |> Array.of_list
     | _ -> [%e make_error_raiser loc [%expr ("Expected array, got " ^ (Yojson.Basic.to_string value))]]] [@metaloc loc]
 
@@ -127,14 +127,21 @@ and generate_record_decoder config loc name fields =
     ) in { f1 = field_f1; f2 = field_f2; f3 = field_f3 }
   *)
 
-  let field_name_tuple_pattern = Ast_helper.(
+  let field_name_pattern = 
+    let fields = Ast_helper.(
       fields
       |> filter_map (function
           | Fr_named_field (field, _, _) -> Some (Pat.var { loc; txt = "field_" ^ field })
           | Fr_fragment_spread _ -> None)
-      |> Pat.tuple) in
+      ) in
+      match fields with
+      | [] -> assert(false)
+      | [one] -> one
+      | many -> Ast_helper.Pat.tuple(many)
+    in
 
-  let field_decoder_tuple = Ast_helper.(
+  let field_decoder =
+    let fields = Ast_helper.(
       fields
       |> filter_map (function
           | Fr_named_field (field, loc, inner) -> 
@@ -149,8 +156,12 @@ and generate_record_decoder config loc name fields =
                     "Field " ^ [%e const_str_expr field] ^
                     " on type " ^ [%e const_str_expr name] ^ " is missing"]]] [@metaloc loc]
           | Fr_fragment_spread _ -> None)
-      |> Exp.tuple) in
-
+    ) in
+    match fields with
+    | [] -> assert(false)
+    | [one] -> one
+    | many -> Ast_helper.Exp.tuple(many)
+  in
   let record_fields = Ast_helper.(
       fields
       |> List.map (function
@@ -166,7 +177,7 @@ and generate_record_decoder config loc name fields =
 
   [%expr match value with
     | `Assoc value ->
-      let [%p field_name_tuple_pattern] = [%e field_decoder_tuple]
+      let [%p field_name_pattern] = [%e field_decoder]
       in [%e record]
     | value -> [%e make_error_raiser loc [%expr
         "Expected object of type " ^
@@ -174,7 +185,7 @@ and generate_record_decoder config loc name fields =
         ", got " ^ (Yojson.Basic.to_string value)]]]
 
 and generate_object_decoder config loc name fields =
-  [%expr match value with
+  [%expr match (value: Yojson.Basic.json) with
     | `Assoc value ->
       [%e
         Ast_helper.(
@@ -218,7 +229,7 @@ and generate_poly_variant_selection_set config loc name fields =
             " on type " ^ [%e const_str_expr name] ^ " is missing"]]
         | temp -> match temp with
           | `Null -> [%e generator_loop next]
-          | _ -> let value = temp in [%e variant_decoder]]
+          | (_: Yojson.Basic.json) -> let value = temp in [%e variant_decoder]]
     | [] -> make_error_raiser loc [%expr
               "All fields on variant selection set on type " ^ 
               [%e const_str_expr name] ^
@@ -229,7 +240,7 @@ and generate_poly_variant_selection_set config loc name fields =
         Closed None) in
   [%expr match value with
     | `Assoc value -> ([%e generator_loop fields]: [%t variant_type])
-    | _ -> [%e make_error_raiser loc [%expr "Expected type " ^ [%e const_str_expr name] ^ " to be an object"]]] [@metaloc loc]
+    | (_: Yojson.Basic.json) -> [%e make_error_raiser loc [%expr "Expected type " ^ [%e const_str_expr name] ^ " to be an object"]]] [@metaloc loc]
 
 and generate_poly_variant_interface config loc name base fragments =
   let map_fallback_case (type_name, inner) = Ast_helper.(
@@ -258,7 +269,7 @@ and generate_poly_variant_interface config loc name base fragments =
                                        [%expr typename]
                                        (List.concat [ fragment_cases; [ fallback_case ]])) in
   [%expr
-    match value with
+    match (value: Yojson.Basic.json) with
     | `Assoc typename_obj -> begin match List.assoc "__typename" typename_obj with
         | exception Not_found -> [%e make_error_raiser loc [%expr
             "Interface implementation" ^ [%e const_str_expr name] ^
@@ -298,7 +309,7 @@ and generate_poly_variant_union config loc name fragments exhaustive_flag =
                                        [%expr typename]
                                        (List.concat [ fragment_cases; [ fallback_case ]])) in
   [%expr
-    match value with
+    match (value: Yojson.Basic.json) with
     | `Assoc typename_obj -> begin match List.assoc "__typename" typename_obj with
         | exception Not_found -> [%e make_error_raiser loc [%expr
             "Union " ^ [%e const_str_expr name] ^

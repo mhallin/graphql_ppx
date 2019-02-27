@@ -6,8 +6,7 @@
   "esy": {
     "build": [
       [ "dune", "build", "-p", "graphql_ppx" ]
-    ],
-    "buildsInSource": "_build"
+    ]
   },
   "dependencies": {
     "@opam/ocaml-migrate-parsetree": "*",
