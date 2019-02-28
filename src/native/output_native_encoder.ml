@@ -64,10 +64,10 @@ let rec parser_for_type schema loc type_ref =
     match lookup_type schema type_name  with
     | None -> raise_inconsistent_schema type_name 
     | Some (Scalar { sm_name = "String"; _ })
-    | Some (Scalar { sm_name = "ID"; _ }) -> [%expr fun v -> `String v]
-    | Some (Scalar { sm_name = "Int"; _ }) -> [%expr fun v -> `Int v]
-    | Some (Scalar { sm_name = "Float"; _ }) -> [%expr fun v -> `Float v]
-    | Some (Scalar { sm_name = "Boolean"; _ }) -> [%expr fun v -> `Bool v]
+    | Some (Scalar { sm_name = "ID"; _ }) -> [%expr fun (v: string) -> `String v]
+    | Some (Scalar { sm_name = "Int"; _ }) -> [%expr fun (v: int) -> `Int v]
+    | Some (Scalar { sm_name = "Float"; _ }) -> [%expr fun (v: float) -> `Float v]
+    | Some (Scalar { sm_name = "Boolean"; _ }) -> [%expr fun (v: bool) -> `Bool v]
     | Some (Scalar _) -> [%expr fun v -> v]
     | Some ty ->
       function_name_string ty |> ident_from_string loc
