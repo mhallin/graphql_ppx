@@ -16,3 +16,4 @@ dune.flags
 jbuild.flags
 .merlin
 _opam
+*.install
