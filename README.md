@@ -147,6 +147,37 @@ let result = Js.Json.parseExn(sampleResponse) |> query##parse;
 Js.log("The hero of the story is " ++ result##hero##name);
 ```
 
+#### Handling irregular field names
+
+You may encounter scenarios in which your GraphQL schema contains fields
+whose capitalization structure doesn't play nicely with Reason's requirement
+that Object fields use camelCase. For example, if this were your schema:
+
+```reason
+module HeroQuery = [%graphql {|
+{
+  Hero {  /* Note: Hero is capitalized */
+    name
+  }
+}
+|}];
+```
+
+Attempting to access `result##Hero` will throw a syntax error.
+
+Instead, you can use an alias, like so:
+```reason
+module HeroQuery = [%graphql {|
+{
+  hero: Hero {
+    name
+  }
+}
+|}];
+```
+
+Which allows you to access the returned data via `result##hero`, as expected.
+
 ### Integrating with the Fetch API
 
 [bs-fetch](https://github.com/reasonml-community/bs-fetch) is a wrapper around
