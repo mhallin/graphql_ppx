@@ -156,7 +156,7 @@ that Object fields use camelCase. For example, if this were your schema:
 ```reason
 module HeroQuery = [%graphql {|
 {
-  Hero {  /* Note: Hero is capitalized */
+  Hero {  # Note that Hero is capitalized
     name
   }
 }
