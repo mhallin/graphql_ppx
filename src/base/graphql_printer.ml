@@ -50,7 +50,7 @@ let print_directive d =
 
 let is_internal_directive d =
   match d.item.d_name.item with
-  | "bsVariant" | "bsRecord" | "bsDecoder" -> true
+  | "bsVariant" | "bsRecord" | "bsDecoder" | "bsField" -> true
   | _ -> false
 
 let print_directives ds =
