@@ -75,7 +75,7 @@ directory:
 ```sh
 yarn send-introspection-query http://my-api.example.com/api
 # or, if you use npm
-npm run send-introspection-query http://my-api.example.com/api
+npx send-introspection-query http://my-api.example.com/api
 ```
 
 
