@@ -85,7 +85,7 @@ let () = Ppx_config.(set_config {
       raise (Location.Error (Location.Error.createf ~loc "%s" message))
   })
 
-let rewrite_query loc delim query =
+let rewrite_query loc delim query maybe_schema =
   let lexer = Graphql_lexer.make query in
   let delimLength = match delim with | Some s -> 2 + String.length s | None -> 1 in
   match Graphql_lexer.consume lexer with
@@ -104,7 +104,7 @@ let rewrite_query loc delim query =
         delimiter = delim;
         full_document = document;
         (*  the only call site of schema, make it lazy! *)
-        schema = Lazy.force (Read_schema.get_schema ());
+        schema = Lazy.force (Read_schema.get_schema maybe_schema);
       } in
       match Validations.run_validators config document with
       | Some errs ->
@@ -121,11 +121,24 @@ let rewrite ~loc ~path:_ expr =
   match expr with
   | PStr [{ pstr_desc = Pstr_eval ({
       pexp_loc = loc; 
-      pexp_desc = Pexp_constant (Pconst_string (query, delim)); _ }, _); _ }] ->
-    rewrite_query
-      (conv_loc_from_ast loc)
-      delim
-      query
+      pexp_desc = Pexp_constant (Pconst_string (query, delim)); _}, _); _};
+      { pstr_desc = Pstr_eval({
+        pexp_desc = Pexp_constant (Pconst_string (schema_name, _)); _}, _); _}] -> begin
+      rewrite_query
+        (conv_loc_from_ast loc)
+        delim
+        query
+        (Some schema_name)
+    end
+  | PStr [{ pstr_desc = Pstr_eval ({
+      pexp_loc = loc; 
+      pexp_desc = Pexp_constant (Pconst_string (query, delim)); _}, _); _}] -> begin
+      rewrite_query
+        (conv_loc_from_ast loc)
+        delim
+        query
+        None
+    end
   | _ -> raise (Location.Error (
       Location.Error.createf ~loc "[%%graphql] accepts a string, e.g. [%%graphql {| { query |}]"
     ))
