@@ -316,11 +316,13 @@ and recovery_build json_schema =
   read_marshaled_schema (json_schema) 
 
 (* lazily read schema and check if schema file existed *)
-let get_schema () = lazy (
-  match find_file_towards_root (Ppx_config.root_directory ()) (Ppx_config.schema_file ()) with 
+let get_schema maybe_schema = lazy (
+  match find_file_towards_root (Ppx_config.root_directory ()) (match maybe_schema with
+      | Some schema_name -> schema_name
+      | None -> Ppx_config.schema_file ()
+    ) with 
     | None -> raise Schema_file_not_found
     | Some json_schema -> 
       build_schema_if_dirty json_schema;
       read_marshaled_schema (json_schema) 
 )
-
