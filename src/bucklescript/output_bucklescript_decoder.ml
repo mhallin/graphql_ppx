@@ -42,7 +42,7 @@ let boolean_decoder loc =
 let generate_poly_enum_decoder _loc enum_meta =
   let enum_match_arms = Ast_helper.(
       List.map
-        (fun {evm_name; _} -> Exp.case 
+        (fun {evm_name; _} -> Exp.case
             (Pat.constant (Const_string (evm_name, None)))
             (Exp.variant evm_name None))
         enum_meta.em_values) in
@@ -58,7 +58,7 @@ let generate_poly_enum_decoder _loc enum_meta =
         (List.map (fun { evm_name; _ } -> Rtag (evm_name, [], true, [])) enum_meta.em_values)
         Closed None) [@metaloc loc]
   in
-  [%expr match Js.Json.decodeString value with 
+  [%expr match Js.Json.decodeString value with
     | None -> [%e make_error_raiser [%expr
         "Expected enum value for " ^
         [%e const_str_expr enum_meta.em_name] ^
@@ -98,9 +98,7 @@ and generate_nullable_decoder config loc inner =
     | Some _ -> None] [@metaloc loc]
 
 and generate_array_decoder config loc inner =
-  [%expr match Js.Json.decodeArray value with
-    | None -> [%e make_error_raiser [%expr ("Expected array, got " ^ (Js.Json.stringify value))]]
-    | Some value -> Js.Array.map (fun value -> [%e generate_decoder config inner]) value] [@metaloc loc]
+  [%expr let value = value |> Js.Json.decodeArray |> Js.Option.getExn in Js.Array.map (fun value -> [%e generate_decoder config inner]) value] [@metaloc loc]
 
 and generate_custom_decoder config loc ident inner =
   let fn_expr = Ast_helper.(Exp.ident
@@ -136,14 +134,14 @@ and generate_record_decoder config loc name fields =
   let field_decoder_tuple = Ast_helper.(
       fields
       |> filter_map (function
-          | Fr_named_field (field, loc, inner) -> 
+          | Fr_named_field (field, loc, inner) ->
             let loc = conv_loc loc in
             Some [%expr match Js.Dict.get value [%e const_str_expr field] with
               | Some value -> [%e generate_decoder config inner]
               | None -> [%e
                 if can_be_absent_as_field inner then
                   [%expr None ]
-                else 
+                else
                   make_error_raiser [%expr
                     "Field " ^ [%e const_str_expr field] ^
                     " on type " ^ [%e const_str_expr name] ^ " is missing"]]] [@metaloc loc]
@@ -155,7 +153,7 @@ and generate_record_decoder config loc name fields =
       |> List.map (function
           | Fr_named_field (field, loc, _) ->
             let loc = conv_loc loc in
-            ({ Location.loc = loc; txt = Longident.Lident field}, 
+            ({ Location.loc = loc; txt = Longident.Lident field},
              Exp.ident ~loc { loc; txt = Longident.Lident ("field_" ^ field) })
           | Fr_fragment_spread (field, loc, name) ->
             let loc = conv_loc loc in
@@ -173,7 +171,7 @@ and generate_record_decoder config loc name fields =
       in [%e record]]
 
 and generate_object_decoder config loc name fields =
-  let ctor_result_type = (List.mapi 
+  let ctor_result_type = (List.mapi
                             (fun i (Fr_named_field (key, _, _) | Fr_fragment_spread (key, _, _)) -> (key, [], Ast_helper.Typ.var ("a" ^ (string_of_int i))))
                             fields)
   in
@@ -187,39 +185,37 @@ and generate_object_decoder config loc name fields =
     | Fr_fragment_spread (key, _, _) :: next
     | Fr_named_field (key, _, _) :: next -> Ast_helper.Typ.arrow key (Ast_helper.Typ.var ("a" ^ (string_of_int i)))
                                            (make_obj_constructor_fn (i+1) next) in
-  [%expr match Js.Json.decodeObject value with
-    | None -> [%e make_error_raiser [%expr "Object is not a value"]]
-    | Some value ->
-      [%e
-        Ast_helper.Exp.letmodule {txt = "GQL"; loc = Location.none} (Ast_helper.Mod.structure [
-            Ast_helper.Str.primitive {
-              pval_name = {txt = "make_obj"; loc = Location.none};
-              pval_type = make_obj_constructor_fn 0 fields;
-              pval_prim = [""];
-              pval_attributes = [({txt = "bs.obj"; loc = Location.none}, PStr [])];
-              pval_loc = Location.none;
-            }
-          ])
-          (Ast_helper.Exp.apply (Ast_helper.Exp.ident { txt = Longident.parse "GQL.make_obj"; loc = Location.none})
-             (List.append
-                (List.map (function
-                     | Fr_named_field (key, _, inner) -> 
-                       (key,
-                        [%expr match Js.Dict.get value [%e const_str_expr key] with
-                          | Some value -> [%e generate_decoder config inner]
-                          | None -> [%e
-                            if can_be_absent_as_field inner then
-                              [%expr None]
-                            else 
-                              make_error_raiser [%expr "Field " ^ [%e const_str_expr key] ^ " on type " ^ [%e const_str_expr name] ^ " is missing"]
-                          ]])
-                     | Fr_fragment_spread (key, loc, name) ->
-                      let loc = conv_loc loc in
-                       (key, [%expr let value = Js.Json.object_ value in [%e generate_solo_fragment_spread loc name]])
-                   ) fields)
-                [("", Ast_helper.Exp.construct { txt = Longident.Lident "()"; loc = Location.none} None)]
-             ))
-      ]
+  [%expr let value = value |> Js.Json.decodeObject |> Js.Option.getExn in
+    [%e
+      Ast_helper.Exp.letmodule {txt = "GQL"; loc = Location.none} (Ast_helper.Mod.structure [
+          Ast_helper.Str.primitive {
+            pval_name = {txt = "make_obj"; loc = Location.none};
+            pval_type = make_obj_constructor_fn 0 fields;
+            pval_prim = [""];
+            pval_attributes = [({txt = "bs.obj"; loc = Location.none}, PStr [])];
+            pval_loc = Location.none;
+          }
+        ])
+        (Ast_helper.Exp.apply (Ast_helper.Exp.ident { txt = Longident.parse "GQL.make_obj"; loc = Location.none})
+           (List.append
+              (List.map (function
+                   | Fr_named_field (key, _, inner) ->
+                     (key,
+                      [%expr match Js.Dict.get value [%e const_str_expr key] with
+                        | Some value -> [%e generate_decoder config inner]
+                        | None -> [%e
+                          if can_be_absent_as_field inner then
+                            [%expr None]
+                          else
+                            make_error_raiser [%expr "Field " ^ [%e const_str_expr key] ^ " on type " ^ [%e const_str_expr name] ^ " is missing"]
+                        ]])
+                   | Fr_fragment_spread (key, loc, name) ->
+                    let loc = conv_loc loc in
+                     (key, [%expr let value = Js.Json.object_ value in [%e generate_solo_fragment_spread loc name]])
+                 ) fields)
+              [("", Ast_helper.Exp.construct { txt = Longident.Lident "()"; loc = Location.none} None)]
+           ))
+    ]
   ] [@metaloc loc]
 
 and generate_poly_variant_selection_set config loc name fields =
@@ -236,7 +232,7 @@ and generate_poly_variant_selection_set config loc name fields =
           | None -> let value = temp in [%e variant_decoder]
           | Some _ -> [%e generator_loop next]]
     | [] -> make_error_raiser [%expr
-              "All fields on variant selection set on type " ^ 
+              "All fields on variant selection set on type " ^
               [%e const_str_expr name] ^
               " were null"] in
   let variant_type = Ast_helper.(
@@ -258,14 +254,14 @@ and generate_poly_variant_interface config loc name base fragments =
     let name_pattern = Pat.constant (Const_string (type_name, None)) in
     let variant = Exp.variant type_name (Some (generate_decoder config inner)) in
     Exp.case name_pattern variant
-  ) in 
+  ) in
   let map_case_ty (name, _) =
     Rtag (name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }])
   in
 
   let fragment_cases = List.map map_case fragments in
   let fallback_case = map_fallback_case base in
-  let fallback_case_ty = map_case_ty base in 
+  let fallback_case_ty = map_case_ty base in
 
   let fragment_case_tys = List.map map_case_ty fragments in
   let interface_ty = Ast_helper.(Typ.variant (fallback_case_ty :: fragment_case_tys) Closed None) in
@@ -285,11 +281,11 @@ and generate_poly_variant_interface config loc name base fragments =
             "Interface implementation " ^ [%e const_str_expr name] ^
             " has a __typename field that is not a string"]]
         | Some typename -> ([%e typename_matcher]: [%t interface_ty])] [@metaloc loc]
-  
+
 and generate_poly_variant_union config loc name fragments exhaustive_flag =
   let fragment_cases = Ast_helper.(
       fragments
-      |> List.map (fun (type_name, inner) -> 
+      |> List.map (fun (type_name, inner) ->
           let name_pattern = Pat.constant (Const_string (type_name, None)) in
           let variant = Ast_helper.(Exp.variant type_name (Some (generate_decoder config inner))) in
           Exp.case name_pattern variant)) in
@@ -301,10 +297,10 @@ and generate_poly_variant_union config loc name fragments exhaustive_flag =
               "Union " ^ [%e const_str_expr name] ^
               " returned unknown type " ^ typename]),
          [ ])
-      | Nonexhaustive -> 
+      | Nonexhaustive ->
         (Exp.case (Pat.any ()) [%expr `Nonexhaustive]), [Rtag ("Nonexhaustive", [], true, [])]) in
   let fragment_case_tys = List.map
-      (fun (name, _) -> Rtag (name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }])) 
+      (fun (name, _) -> Rtag (name, [], false, [{ ptyp_desc = Ptyp_any; ptyp_attributes = []; ptyp_loc = Location.none }]))
       fragments in
   let union_ty = Ast_helper.(Typ.variant (List.concat [ fallback_case_ty; fragment_case_tys ]) Closed None) in
   let typename_matcher = Ast_helper.(Exp.match_
