@@ -83,12 +83,20 @@ npm run send-introspection-query http://my-api.example.com/api
 
 If you've already got a schema file downloaded for other purposes, you can tell
 graphql_ppx to use that one by updating the "ppx-flags" in `bsconfig.json`.
-Note: no space around the equal sign!
+The syntax for passing arguments to a ppx is dependent on the version of
+BuckleScript you are using and, consequently, is only available in BuckleScript 5.1.0+. 
+On older versions of BuckleScript there is no way to pass the ppx argument, so
+you will have to symlink your schema file to `graphql_schema.json`, relying on
+graphql_ppx's default filename loading to read your custom schema file.
+
+Note: no space around the equal sign! Note also that the ppx and arguments are
+supplied as a nested array. If you supply them simply as strings, BuckleScript
+will treat each argument as its own ppx.
 
 ```json
 {
   "ppx-flags": [
-    "graphql_ppx/ppx\\ -schema=your_schema.json"
+    ["graphql_ppx/ppx", "-schema=your_schema.json"]
   ]
 }
 ```
